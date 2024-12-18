@@ -1,0 +1,13 @@
+.App {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #f0f0f0;
+}
+
+h1 {
+  color: #333;
+  font-size: 48px;
+  font-family: Arial, sans-serif;
+}
