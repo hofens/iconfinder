@@ -2,6 +2,7 @@
   "name": "iconfinder",
   "version": "0.1.0",
   "private": true,
+  "main": "main.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/hofens/iconfinder.git"
@@ -9,7 +10,6 @@
   "bugs": {
     "url": "https://github.com/hofens/iconfinder/issues"
   },
-  "homepage": "https://github.com/hofens/iconfinder#readme",
   "dependencies": {
     "cra-template": "1.2.0",
     "react": "^18.2.0",
@@ -21,7 +21,9 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "electron": "electron .",
+    "electron:build": "npm run build && electron ."
   },
   "eslintConfig": {
     "extends": [
@@ -40,5 +42,19 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "build": {
+    "appId": "com.yourname.iconfinder",
+    "files": [
+      "build/**/*",
+      "main.js"
+    ],
+    "directories": {
+      "buildResources": "assets"
+    }
+  },
+  "devDependencies": {
+    "electron": "25.9.8",
+    "electron-builder": "^24.6.0"
   }
 }
