@@ -1,15 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
-import { FaUpload, FaFolder, FaImage, FaSearch } from 'react-icons/fa';
+import { FaUpload, FaFolder, FaImage, FaSearch, FaCog } from 'react-icons/fa';
 
 function App() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
-  const [similarity, setSimilarity] = useState(1.0);
+  const [similarity, setSimilarity] = useState(0.9999);
   const [searchResults, setSearchResults] = useState([]);
   const [selectedResult, setSelectedResult] = useState(null);
   const [searchPath, setSearchPath] = useState('');
   const [status, setStatus] = useState('');
+  const [showSettings, setShowSettings] = useState(false);
+  const [excludePaths, setExcludePaths] = useState('');
+  const [includePaths, setIncludePaths] = useState('');
 
   const handleDrop = (e) => {
     e.preventDefault();
@@ -84,10 +87,54 @@ function App() {
 
   const handleSimilarityChange = (e) => {
     const value = e.target.value;
-    if (value >= 0.9 && value <= 1) {
+    if (value >= 0.5 && value <= 0.9999) {
       setSimilarity(value);
     }
   };
+
+  const settingsModal = showSettings && (
+    <div className="modal-overlay">
+      <div className="modal">
+        <h2>Search Settings</h2>
+        <div className="modal-content">
+          <div className="setting-group">
+            <label>Include Paths (Regular Expression):</label>
+            <input
+              type="text"
+              value={includePaths}
+              onChange={(e) => setIncludePaths(e.target.value)}
+              placeholder="e.g., \.png$|\.jpg$"
+            />
+          </div>
+          <div className="setting-group">
+            <label>Exclude Paths (Regular Expression):</label>
+            <input
+              type="text"
+              value={excludePaths}
+              onChange={(e) => setExcludePaths(e.target.value)}
+              placeholder="e.g., node_modules|\.git"
+            />
+          </div>
+        </div>
+        <div className="modal-actions">
+          <button onClick={() => setShowSettings(false)}>Close</button>
+        </div>
+      </div>
+    </div>
+  );
+
+  useEffect(() => {
+    if (previewUrl) {
+      const img = new Image();
+      img.onload = function() {
+        const dimensions = document.getElementById('dimensions');
+        if (dimensions) {
+          dimensions.textContent = `${this.width} × ${this.height}`;
+        }
+      };
+      img.src = previewUrl;
+    }
+  }, [previewUrl]);
 
   return (
     <div className="App">
@@ -104,6 +151,9 @@ function App() {
               placeholder="Enter directory path to search"
             />
             <button className="browse-btn" onClick={handleBrowseDirectory}>Browse</button>
+            <button className="settings-btn" onClick={() => setShowSettings(true)}>
+              <FaCog /> Settings
+            </button>
           </div>
         </div>
 
@@ -135,8 +185,11 @@ function App() {
                 <div className="preview-content">
                   <img src={previewUrl} alt="Preview" className="preview-image"/>
                   <div className="preview-info">
-                    <p>File name: {selectedFile?.name}</p>
-                    <p>Size: {(selectedFile?.size / 1024).toFixed(2)} KB</p>
+                    <p><span>Path:</span> {selectedFile?.path || selectedFile?.name}</p>
+                    <p><span>Size:</span> {(selectedFile?.size / 1024).toFixed(2)} KB</p>
+                    {selectedFile && (
+                      <p><span>Dimensions:</span> <span id="dimensions">Loading...</span></p>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -153,13 +206,13 @@ function App() {
               <label>Similarity:</label>
               <input
                 type="range"
-                min="0.9"
-                max="1"
-                step="0.001"
+                min="0.5"
+                max="0.9999"
+                step="0.0001"
                 value={similarity}
                 onChange={(e) => setSimilarity(e.target.value)}
               />
-              <span>{Number(similarity).toFixed(3)}</span>
+              <span>{Number(similarity).toFixed(4)}</span>
             </div>
             <div className="buttons">
               <button onClick={searchSimilarImages}><FaSearch /> Search</button>
@@ -231,6 +284,7 @@ function App() {
           </div>
         </div>
       </div>
+      {settingsModal}
     </div>
   );
 }
