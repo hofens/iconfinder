@@ -14,6 +14,28 @@ function App() {
   const [excludePaths, setExcludePaths] = useState('');
   const [includePaths, setIncludePaths] = useState('');
 
+
+  // Load settings from localStorage on component mount
+  useEffect(() => {
+    const savedSettings = JSON.parse(localStorage.getItem('appSettings')) || {};
+    setSearchPath(savedSettings.searchPath || '');
+    setSimilarity(savedSettings.similarity || 0.9999);
+    setExcludePaths(savedSettings.excludePaths || '');
+    setIncludePaths(savedSettings.includePaths || '');
+
+  }, []);
+
+  // Save settings to localStorage whenever they change
+  useEffect(() => {
+    const settings = {
+      searchPath,
+      similarity,
+      excludePaths,
+      includePaths,
+    };
+    localStorage.setItem('appSettings', JSON.stringify(settings));
+  }, [searchPath, similarity, excludePaths, includePaths]);
+
   const handleDrop = (e) => {
     e.preventDefault();
     const file = e.dataTransfer.files[0];
@@ -78,11 +100,23 @@ function App() {
   };
 
   const handleBrowseDirectory = () => {
-    // 由于浏览器安全限制，这里模拟目录选择
-    // 在实际应用中，这里需要根据具体运行环境（如 Electron）来实现
-    const mockPath = '/Users/Documents/Icons';
-    setSearchPath(mockPath);
-    setStatus(`Selected directory: ${mockPath}`);
+    if (window.electron) {
+      // Electron 环境
+      window.electron.ipcRenderer.invoke('select-directory').then((directoryPath) => {
+        setSearchPath(directoryPath);
+        setStatus(`Selected directory: ${directoryPath}`);
+      });
+    } else {
+      // Web 环境
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.webkitdirectory = true;
+      input.onchange = (e) => {
+        const files = Array.from(e.target.files);
+        // 处理文件
+      };
+      input.click();
+    }
   };
 
   const handleSimilarityChange = (e) => {
@@ -117,7 +151,28 @@ function App() {
           </div>
         </div>
         <div className="modal-actions">
-          <button onClick={() => setShowSettings(false)}>Close</button>
+          <button 
+            style={{ backgroundColor: '#3182ce', color: 'white' }}
+            onClick={() => {
+              const settings = {
+                searchPath,
+                similarity,
+                excludePaths,
+                includePaths,
+              };
+              localStorage.setItem('appSettings', JSON.stringify(settings));
+              setShowSettings(false);
+            }}
+          >
+            Confirm
+          </button>
+          <div style={{ margin: '0 5px' }} />
+          <button 
+            style={{ backgroundColor: '#f44336', color: 'white' }}
+            onClick={() => setShowSettings(false)}
+          >
+            Cancel
+          </button>
         </div>
       </div>
     </div>
