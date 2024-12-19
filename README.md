@@ -1,70 +1,77 @@
-# Getting Started with Create React App
+# IconFinder
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+[English](./README_EN.md) | 简体中文
 
-## Available Scripts
+一个基于相似度的图标查找工具，可以帮助你在项目中快速找到相似或重复的图标。
 
-In the project directory, you can run:
+![Screenshot](./screenshots/screenshot.png)
 
-### `npm start`
+## 功能特点
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+- 🔍 以图搜图：上传图片后可找到项目中存在的相似图片
+- 🎯 相似度控制：支持 0.5000-0.9999 的精确相似度设置
+- 📁 目录管理：支持设置搜索目录和排除目录
+- 🖼️ 图片预览：支持预览原图和搜索结果
+- 💾 图片缓存：自动构建和更新图片缓存，提升搜索速度
+- 🔄 实时反馈：显示搜索和操作状态
+- 📋 快捷复制：双击可复制文件名
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## 快速开始
 
-### `npm test`
+### 环境要求
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+- Node.js >= 14.0.0
+- npm >= 6.14.0
 
-### `npm run build`
+### 安装
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+```bash
+# 克隆项目
+git clone https://github.com/hofens/iconfinder.git
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+# 进入项目目录
+cd iconfinder
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+# 安装依赖
+npm install
+```
 
-### `npm run eject`
+### 开发
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+```bash
+# 启动开发服务器
+npm start
+```
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### 构建
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+```bash
+# 构建生产版本
+npm run build
+```
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## 使用说明
 
-## Learn More
+1. 选择搜索目录：点击 "Browse" 按钮选择要搜索的目录
+2. 上传图片：将图片拖放到上传区域或点击选择文件
+3. 调整相似度：使用滑块设置期望的相似度阈值
+4. 查看结果：在结果列表中查看相似图片
+5. 预览详情：点击结果项查看详细信息
+6. 复制文件名：双击结果项可复制文件名
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## 配置说明
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+### 搜索设置
 
-### Code Splitting
+点击 "Settings" 按钮可以配置：
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+- 包含路径：使用正则表达式设置要包含的文件路径
+- 排除路径：使用正则表达式设置要排除的文件路径
 
-### Analyzing the Bundle Size
+## 贡献指南
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+欢迎提交 Pull Request 或创建 Issue。
 
-### Making a Progressive Web App
+## 开源协议
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+[MIT License](./LICENSE)
