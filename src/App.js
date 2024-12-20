@@ -16,6 +16,9 @@ function App() {
   const [searchFile, setSearchFile] = useState(null);
   const [directoryStructure, setDirectoryStructure] = useState([]);
 
+  // Ensure ipcRenderer is available
+
+  
   // Load settings from localStorage on component mount
   useEffect(() => {
     const savedSettings = JSON.parse(localStorage.getItem('appSettings')) || {};
@@ -58,65 +61,86 @@ function App() {
       reader.readAsDataURL(file);
       setStatus('Searching for similar images...');
       setSearchFile(file);
-      searchSimilarImages(file.name);
+      searchSimilarImages(file.path);
     } else {
       setStatus('Error: Please upload an image file');
     }
   };
 
-  const searchSimilarImages = (fileName) => {
+  async function searchSimilarImages(filePath) {
     let results = [];
-
+    console.log(`filePath ${filePath}`);
+    console.log(`directoryStructure ${directoryStructure}`);
     if (window.electron) {
-      // Electron 环境，使用完整路径查找
-      results = directoryStructure.filter(file => 
-        file.path.includes(fileName) // 判断文件路径是否包含待查找文件名
-      );
+        results = directoryStructure.filter(file => {
+          console.log(`file.path ${file.path}`);
+          console.log(`filePath ${filePath}`);
+          return file.path.includes(filePath);
+        });
     } else {
-      // Web 环境，使用相对路径查找
-      results = directoryStructure.filter(file => 
-        file.name.includes(fileName) // 判断文件名是否相似
-      );
+        results = directoryStructure.filter(file => 
+            file.name.includes(filePath)
+        );
+        console.log(`web? ${window.electron}, results? ${results}`);
     }
+    console.log(`results ${JSON.stringify(results)}`);
+    
+    // Resolve all promises before setting the search results
+    const updatedResults = await Promise.all(results.map(async (file) => {
+        const size = await getFileSize(file.path);
+        const dimensions = await getImageDimensions(file.path);
+        return {
+            path: file.path,
+            name: file.name,
+            size: size,
+            dimensions: dimensions,
+            similarity: calculateSimilarity(file.name, filePath),
+            preview: getImagePreview(file.path)
+        };
+    }));
 
-    // 更新搜索结果，获取真实的文件信息或假值
-    const updatedResults = results.map((file) => {
-      return {
-        path: file.path,
-        name: file.name,
-        size: window.electron ? getFileSize(file.path) : '24KB', // 使用假值
-        dimensions: window.electron ? getImageDimensions(file.path) : '32x32', // 使用假值
-        similarity: window.electron ? calculateSimilarity(file.name, fileName) : '0.90', // 使用假值
-        preview: getImagePreview(file.path) // 获取预览图
-      };
-    });
-
-    // 更新搜索结果状态
     setSearchResults(updatedResults);
     setStatus(`Found ${updatedResults.length} similar images`);
-  };
+  }
 
-  // 辅助函数：获取文件大小
-  const getFileSize = (filePath) => {
-    // 这里可以实现获取文件大小的逻辑
-    // 由于在 Web 环境中无法直接获取文件大小，假设返回一个示例值
-    return '24KB'; // 示例返回值
+  // Update getFileSize to use ipcRenderer
+  const getFileSize = async (filePath) => {
+    console.log(`Attempting to get file size for ${filePath}`);
+    const size = await window.electron.getFileSize(filePath);
+    console.log(`File size for ${filePath}: ${size}`);
+    return size; // Return the size received from the main process
   };
 
   // 辅助函数：获取图片尺寸
-  const getImageDimensions = (filePath) => {
-    return new Promise((resolve) => {
+  const getImageDimensions = async (filePath) => {
+    console.log(`Attempting to get image dimensions for ${filePath}`);
+    if (window.electron) {
+      // Use ipcRenderer to request image dimensions from the main process
+      const dimensions = await window.electron.getImageDimensions(filePath);
+      console.log(`Image dimensions for ${filePath}: ${dimensions}`);
+      return dimensions;
+    } else {
+      // For non-electron environments, use the traditional approach
       const img = new Image();
       img.src = filePath; // 使用文件路径加载图片
-      img.onload = () => {
-        resolve(`${img.width}x${img.height}`); // 返回实际尺寸
-      };
-    });
+      await new Promise((resolve, reject) => {
+        img.onload = () => {
+          const dimensions = `${img.naturalWidth}x${img.naturalHeight}`; // 返回实际尺寸
+          console.log(`Image dimensions for ${filePath}: ${dimensions}`);
+          resolve(dimensions);
+        };
+        img.onerror = (error) => {
+          console.error(`Error loading image for dimensions: ${error}`);
+          reject(error);
+        };
+      });
+    }
   };
 
   // 辅助函数：计算相似度
   const calculateSimilarity = (fileName1, fileName2) => {
     // 这里可以实现相似度计算的逻辑
+    // 例如，简单的字符串比较或更复杂的算法
     return (fileName1 === fileName2) ? '1.00' : '0.90'; // 示例返回值
   };
 
@@ -152,14 +176,20 @@ function App() {
   const handleBrowseDirectory = () => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.webkitdirectory = true;
+    input.webkitdirectory = true; // Allow directory selection
+    input.multiple = true; // Allow multiple files to be selected
+
     input.onchange = (e) => {
       const files = Array.from(e.target.files);
       const structure = files.map(file => ({
         name: file.name,
-        path: file.webkitRelativePath
+        path: file.path // Get the absolute path
       }));
       setDirectoryStructure(structure);
+      // Store the base directory path
+      const basePath = files[0].path.split('/').slice(0, -1).join('/'); // Construct the base path from the first file's path
+      console.log(basePath);
+      setSearchPath(basePath);
     };
     input.click();
   };
