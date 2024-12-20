@@ -388,10 +388,12 @@ function App() {
                 <div className="result-preview">
                   {selectedResult !== null && searchResults[selectedResult] ? (
                     <div className="selected-result-details">
-                      <img 
-                        src={searchResults[selectedResult].preview} 
-                        alt={searchResults[selectedResult].name}
-                      />
+                      <div className='selected-result-details-div'>
+                        <img 
+                          src={searchResults[selectedResult].preview} 
+                          alt={searchResults[selectedResult].name}
+                        />
+                      </div>
                       <div className="details">
                         <h3>File Details</h3>
                         <p data-label="Path:">{searchResults[selectedResult].path}</p>
