@@ -342,6 +342,7 @@ button:hover {
   object-fit: contain;
   display: block;
   margin: 0 auto;
+  padding: 10px;
 }
 
 .result-info {
