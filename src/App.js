@@ -61,42 +61,38 @@ function App() {
       reader.readAsDataURL(file);
       setStatus('Searching for similar images...');
       setSearchFile(file);
-      searchSimilarImages(file.path);
+      searchSimilarImages(file);
     } else {
       setStatus('Error: Please upload an image file');
     }
   };
 
-  async function searchSimilarImages(filePath) {
+  async function searchSimilarImages(file) {
     let results = [];
-    console.log(`filePath ${filePath}`);
-    console.log(`directoryStructure ${directoryStructure}`);
+    const filePath = file.path || file.name; // Use file path or name as needed
     if (window.electron) {
-        results = directoryStructure.filter(file => {
-          console.log(`file.path ${file.path}`);
-          console.log(`filePath ${filePath}`);
-          return file.path.includes(filePath);
-        });
+      results = directoryStructure.filter(fileEntry => {
+        return fileEntry.path.includes(filePath);
+      });
     } else {
-        results = directoryStructure.filter(file => 
-            file.name.includes(filePath)
-        );
-        console.log(`web? ${window.electron}, results? ${results}`);
+      results = directoryStructure.filter(fileEntry => 
+        fileEntry.name.includes(filePath)
+      );
     }
-    console.log(`results ${JSON.stringify(results)}`);
     
     // Resolve all promises before setting the search results
-    const updatedResults = await Promise.all(results.map(async (file) => {
-        const size = await getFileSize(file.path);
-        const dimensions = await getImageDimensions(file.path);
-        return {
-            path: file.path,
-            name: file.name,
-            size: size,
-            dimensions: dimensions,
-            similarity: calculateSimilarity(file.name, filePath),
-            preview: getImagePreview(file.path)
-        };
+    const updatedResults = await Promise.all(results.map(async (fileEntry) => {
+      const size = await getFileSize(fileEntry.path);
+      const dimensions = await getImageDimensions(fileEntry.path);
+      const preview = await getImagePreview(file); // Pass the File object here
+      return {
+        path: fileEntry.path,
+        name: fileEntry.name,
+        size: size,
+        dimensions: dimensions,
+        similarity: calculateSimilarity(fileEntry.name, filePath),
+        preview: preview
+      };
     }));
 
     setSearchResults(updatedResults);
@@ -145,8 +141,13 @@ function App() {
   };
 
   // 辅助函数：获取图片预览
-  const getImagePreview = (filePath) => {
-    return filePath; // 返回文件路径作为预览图
+  const getImagePreview = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   };
 
   const handleDragOver = (e) => {
@@ -315,7 +316,7 @@ function App() {
                 <div className="preview-area">
                   {previewUrl ? (
                     <div className="preview-content">
-                      <img src={previewUrl} alt="Preview" className="preview-image"/>
+                      <img src={previewUrl} alt="Preview" className="preview-image" />
                       <div className="preview-info">
                         <p><span>Path:</span> {selectedFile?.path || selectedFile?.name}</p>
                         <p><span>Size:</span> {(selectedFile?.size / 1024).toFixed(2)} KB</p>
