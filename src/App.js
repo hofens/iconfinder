@@ -15,6 +15,7 @@ function App() {
   const [includePaths, setIncludePaths] = useState('');
   const [searchFile, setSearchFile] = useState(null);
   const [directoryStructure, setDirectoryStructure] = useState([]);
+  const [similarityTimer, setSimilarityTimer] = useState(null);
 
   // Ensure ipcRenderer is available
 
@@ -229,6 +230,22 @@ function App() {
     const value = e.target.value;
     if (value >= 0.5 && value <= 0.9999) {
       setSimilarity(value);
+      setStatus(`调整相似度为: ${Number(value).toFixed(4)}`);
+      
+      // 清除之前的定时器
+      if (similarityTimer) {
+        clearTimeout(similarityTimer);
+      }
+      
+      // 设置新的定时器
+      const timer = setTimeout(() => {
+        if (searchFile) {
+          setStatus('开始搜索...');
+          searchSimilarImages(searchFile);
+        }
+      }, 500); // 500ms 后触发搜索
+      
+      setSimilarityTimer(timer);
     }
   };
 
@@ -296,6 +313,23 @@ function App() {
       img.src = previewUrl;
     }
   }, [previewUrl]);
+
+  const handleSearch = () => {
+    if (searchFile) {
+      searchSimilarImages(searchFile);
+    } else {
+      setStatus('请先选择要搜索的图片文件');
+    }
+  };
+
+  // 组件卸载时清理定时器
+  useEffect(() => {
+    return () => {
+      if (similarityTimer) {
+        clearTimeout(similarityTimer);
+      }
+    };
+  }, [similarityTimer]);
 
   return (
     <div className="App">
@@ -373,12 +407,12 @@ function App() {
                     max="0.9999"
                     step="0.0001"
                     value={similarity}
-                    onChange={(e) => setSimilarity(e.target.value)}
+                    onChange={handleSimilarityChange}
                   />
                   <span>{Number(similarity).toFixed(4)}</span>
                 </div>
                 <div className="buttons">
-                  <button onClick={searchSimilarImages}><FaSearch /> Search</button>
+                  <button onClick={handleSearch}><FaSearch /> Search</button>
                   <button onClick={resetPreview}>Reset</button>
                   <button onClick={rebuildCache}>Rebuild Cache</button>
                 </div>
