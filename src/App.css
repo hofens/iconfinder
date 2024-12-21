@@ -174,42 +174,92 @@ body {
 .control-group {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 24px;
 }
 
-.similarity-control {
+.control-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  color: #2d3748;
+  gap: 12px;
+  min-width: 200px;
 }
 
-.similarity-control label {
-  min-width: 60px;
+.control-item label {
   font-size: 14px;
+  color: #2d3748;
+  white-space: nowrap;
 }
 
-.similarity-control input[type="range"] {
+.control-item input[type="range"] {
   width: 120px;
   height: 4px;
   -webkit-appearance: none;
   background: #e2e8f0;
   border-radius: 2px;
-  outline: none;
 }
 
-.similarity-control span {
+.control-item span {
   min-width: 45px;
   text-align: center;
   font-family: monospace;
   font-size: 14px;
   color: #4a5568;
-  background: #f8fafc;
   padding: 2px 6px;
+  background: #f1f5f9;
   border-radius: 4px;
-  border: 1px solid #e2e8f0;
 }
 
+/* 权重控制 */
+.weight-slider {
+  display: flex;
+  align-items: center;
+  min-width: 300px;
+}
+
+.weight-control {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.weight-control input[type="range"] {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  background: #e2e8f0;
+  border-radius: 2px;
+}
+
+.weight-value {
+  font-family: monospace;
+  font-size: 14px;
+  color: #4a5568;
+  padding: 2px 6px;
+  background: #f1f5f9;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* 通用滑块样式 */
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  background: #3182ce;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid #fff;
+  box-shadow: 0 0 2px rgba(0,0,0,0.2);
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  background: #2c5282;
+  transform: scale(1.1);
+}
+
+/* 按钮组 */
 .buttons {
   display: flex;
   gap: 8px;
@@ -567,43 +617,4 @@ button:disabled:hover {
 .upload-area.disabled:hover {
   border-color: #cbd5e0;
   background-color: #f8fafc;
-}
-
-.weight-control {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.weight-control input[type="range"] {
-  flex: 1;
-  height: 4px;
-  -webkit-appearance: none;
-  background: #e2e8f0;
-  border-radius: 2px;
-  outline: none;
-}
-
-.weight-control input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 16px;
-  height: 16px;
-  background: #3182ce;
-  border-radius: 50%;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border: 2px solid #fff;
-  box-shadow: 0 0 2px rgba(0,0,0,0.2);
-}
-
-.weight-control span {
-  min-width: 50px;
-  text-align: center;
-  font-family: monospace;
-  font-size: 14px;
-  color: #4a5568;
-  background: #f8fafc;
-  padding: 2px 6px;
-  border-radius: 4px;
-  border: 1px solid #e2e8f0;
 }

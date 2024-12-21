@@ -92,7 +92,7 @@ function App() {
     }
   };
 
-  async function searchSimilarImages(file) {
+  async function searchSimilarImages(file, forceRecalculate = false) {
     if (!file || typeof file === 'object' && !file.name) {
       setStatus('无效的文件');
       return;
@@ -111,6 +111,11 @@ function App() {
     try {
       setStatus('正在计算图片相似度...');
       
+      // 清除之前的结果（如果是强制重新计算）
+      if (forceRecalculate) {
+        setSearchResults([]);
+      }
+
       const updatedResults = await Promise.all(results.map(async (fileEntry) => {
         try {
           const size = await getFileSize(fileEntry.path);
@@ -120,29 +125,26 @@ function App() {
             preview = await getImagePreview(fileEntry);
           } catch (error) {
             console.error('Preview generation error:', error);
-            preview = ''; // 使用空字符串或默认图片URL
+            preview = '';
           }
           
           let similarityScore = 0;
           if (window.electron) {
-            // 在 Electron 环境中计算实际相似度
             similarityScore = await window.electron.calculateImageSimilarity(
               filePath,
               fileEntry.path,
               { colorWeight, shapeWeight }
             );
           } else {
-            // Web 环境使用简单的文件名比较
             similarityScore = calculateSimpleSimilarity(file.name, fileEntry.name);
           }
 
-          // 只返回相似度高于阈值的结果
           if (similarityScore >= similarity) {
             return {
               path: fileEntry.path,
               name: fileEntry.name,
-              size: size,
-              dimensions: dimensions,
+              size,
+              dimensions,
               similarity: similarityScore.toFixed(2),
               preview: preview
             };
@@ -590,6 +592,30 @@ function App() {
     };
   };
 
+  // 修改颜色权重的处理函数
+  const handleColorWeightChange = (e) => {
+    const value = Number(e.target.value);
+    setColorWeight(value);
+    const newShapeWeight = Math.round((1 - value) * 100) / 100;
+    setShapeWeight(newShapeWeight);
+
+    // 清除之前的定时器
+    if (similarityTimer) {
+      clearTimeout(similarityTimer);
+    }
+    
+    // 设置新的定时器，延迟执行搜索
+    const timer = setTimeout(() => {
+      if (searchFile) {
+        setStatus('正在重新计算相似度...');
+        // 强制重新搜索，不使用缓存的结果
+        searchSimilarImages(searchFile, true);
+      }
+    }, 500);
+    
+    setSimilarityTimer(timer);
+  };
+
   return (
     <div className="App">
       <div className="container" style={{ display: 'flex' }}>
@@ -680,7 +706,7 @@ function App() {
               
               <div className="controls">
                 <div className="control-group">
-                  <div className="similarity-control">
+                  <div className="control-item">
                     <label>Similarity:</label>
                     <input
                       type="range"
@@ -692,38 +718,24 @@ function App() {
                     />
                     <span>{Number(similarity).toFixed(2)}</span>
                   </div>
-                  <div className="similarity-control">
-                    <label>Color:</label>
-                    <input
-                      type="range"
-                      min="0.00"
-                      max="1.00"
-                      step="0.01"
-                      value={colorWeight}
-                      onChange={(e) => {
-                        const value = Number(e.target.value);
-                        setColorWeight(value);
-                        setShapeWeight(Math.round((1 - value) * 100) / 100);
-                      }}
-                    />
-                    <span>{Number(colorWeight).toFixed(2)}</span>
+
+                  <div className="control-item">
+                    <div className="weight-slider">
+                      <div className="weight-control">
+                        <span className="weight-value">Color: {Number(colorWeight).toFixed(2)}</span>
+                        <input
+                          type="range"
+                          min="0.00"
+                          max="1.00"
+                          step="0.01"
+                          value={colorWeight}
+                          onChange={handleColorWeightChange}
+                        />
+                        <span className="weight-value">Shape: {Number(shapeWeight).toFixed(2)}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="similarity-control">
-                    <label>Shape:</label>
-                    <input
-                      type="range"
-                      min="0.00"
-                      max="1.00"
-                      step="0.01"
-                      value={shapeWeight}
-                      onChange={(e) => {
-                        const value = Number(e.target.value);
-                        setShapeWeight(value);
-                        setColorWeight(Math.round((1 - value) * 100) / 100);
-                      }}
-                    />
-                    <span>{Number(shapeWeight).toFixed(2)}</span>
-                  </div>
+
                   <div className="buttons">
                     <button onClick={handleSearch} disabled={!searchPath.trim()}>
                       <FaSearch /> Search
