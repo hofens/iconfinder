@@ -119,11 +119,15 @@ async function getImageFeatures(imagePath) {
   }
 }
 
-// 添加计算相似度的IPC处理器
-ipcMain.handle('calculate-similarity', async (event, sourcePath, targetPath) => {
+// 修改计算相似度的IPC处理器
+ipcMain.handle('calculate-similarity', async (event, sourcePath, targetPath, weights = {}) => {
   try {
     const sourceFeatures = await getImageFeatures(sourcePath);
     const targetFeatures = await getImageFeatures(targetPath);
+
+    // 使用传入的权重，如果没有则使用默认值
+    const colorWeight = weights.colorWeight ?? 0.7;
+    const shapeWeight = weights.shapeWeight ?? 0.3;
 
     // 计算直方图相似度（巴氏距离）
     const histogramSimilarity = calculateHistogramSimilarity(
@@ -137,9 +141,7 @@ ipcMain.handle('calculate-similarity', async (event, sourcePath, targetPath) => 
       targetFeatures.aspectRatio
     );
 
-    // 综合相似度（可以调整权重）
-    const colorWeight = 0.7;
-    const shapeWeight = 0.3;
+    // 综合相似度
     const totalSimilarity = (
       colorWeight * histogramSimilarity +
       shapeWeight * shapeSimilarity

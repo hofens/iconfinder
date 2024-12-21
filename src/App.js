@@ -16,6 +16,8 @@ function App() {
   const [searchFile, setSearchFile] = useState(null);
   const [directoryStructure, setDirectoryStructure] = useState([]);
   const [similarityTimer, setSimilarityTimer] = useState(null);
+  const [colorWeight, setColorWeight] = useState(0.7);
+  const [shapeWeight, setShapeWeight] = useState(0.3);
 
   // Ensure ipcRenderer is available
 
@@ -27,6 +29,8 @@ function App() {
     setSimilarity(savedSettings.similarity || 0.50);
     setExcludePaths(savedSettings.excludePaths || '');
     setIncludePaths(savedSettings.includePaths || '');
+    setColorWeight(savedSettings.colorWeight || 0.7);
+    setShapeWeight(savedSettings.shapeWeight || 0.3);
     // 加载保存的目录结构
     const savedStructure = JSON.parse(localStorage.getItem('directoryStructure')) || [];
     setDirectoryStructure(savedStructure);
@@ -39,9 +43,11 @@ function App() {
       similarity,
       excludePaths,
       includePaths,
+      colorWeight,
+      shapeWeight,
     };
     localStorage.setItem('appSettings', JSON.stringify(settings));
-  }, [searchPath, similarity, excludePaths, includePaths]);
+  }, [searchPath, similarity, excludePaths, includePaths, colorWeight, shapeWeight]);
 
   const handleDrop = (e) => {
     e.preventDefault();
@@ -122,7 +128,8 @@ function App() {
             // 在 Electron 环境中计算实际相似度
             similarityScore = await window.electron.calculateImageSimilarity(
               filePath,
-              fileEntry.path
+              fileEntry.path,
+              { colorWeight, shapeWeight }
             );
           } else {
             // Web 环境使用简单的文件名比较
@@ -232,7 +239,7 @@ function App() {
   // 辅助函数：计算相似度
   const calculateSimilarity = (fileName1, fileName2) => {
     // 这里可以实现相似度计算的逻辑
-    // ���如，简单的字符串比较或更复杂的算法
+    // 如，简单的字符串比较或更复杂的算法
     return (fileName1 === fileName2) ? '1.00' : '0.90'; // 示例返回值
   };
 
@@ -408,6 +415,42 @@ function App() {
               placeholder="e.g., node_modules|\.git"
             />
           </div>
+          <div className="setting-group">
+            <label>Color Weight (0.00-1.00):</label>
+            <div className="weight-control">
+              <input
+                type="range"
+                min="0.00"
+                max="1.00"
+                step="0.01"
+                value={colorWeight}
+                onChange={(e) => {
+                  const value = Number(e.target.value);
+                  setColorWeight(value);
+                  setShapeWeight(Math.round((1 - value) * 100) / 100);
+                }}
+              />
+              <span>{colorWeight.toFixed(2)}</span>
+            </div>
+          </div>
+          <div className="setting-group">
+            <label>Shape Weight (0.00-1.00):</label>
+            <div className="weight-control">
+              <input
+                type="range"
+                min="0.00"
+                max="1.00"
+                step="0.01"
+                value={shapeWeight}
+                onChange={(e) => {
+                  const value = Number(e.target.value);
+                  setShapeWeight(value);
+                  setColorWeight(Math.round((1 - value) * 100) / 100);
+                }}
+              />
+              <span>{shapeWeight.toFixed(2)}</span>
+            </div>
+          </div>
         </div>
         <div className="modal-actions">
           <button 
@@ -418,6 +461,8 @@ function App() {
                 similarity,
                 excludePaths,
                 includePaths,
+                colorWeight,
+                shapeWeight,
               };
               localStorage.setItem('appSettings', JSON.stringify(settings));
               setShowSettings(false);
@@ -522,7 +567,7 @@ function App() {
     console.error(`Error during ${operation}:`, error);
     const message = window.electron 
       ? `操作失败: ${error.message}`
-      : '��作失败，请检查浏览器控制台';
+      : '操作失败，请检查浏览器控制台';
     setStatus(message);
   };
 
@@ -634,37 +679,62 @@ function App() {
               </div>
               
               <div className="controls">
-                <div className="similarity-control">
-                  <label>Similarity:</label>
-                  <input
-                    type="range"
-                    min="0.00"
-                    max="1.00"
-                    step="0.01"
-                    value={similarity}
-                    onChange={handleSimilarityChange}
-                  />
-                  <span>{Number(similarity).toFixed(2)}</span>
-                </div>
-                <div className="buttons">
-                  <button 
-                    onClick={handleSearch}
-                    disabled={!searchPath.trim()}
-                  >
-                    <FaSearch /> Search
-                  </button>
-                  <button 
-                    onClick={resetPreview}
-                    disabled={!searchPath.trim()}
-                  >
-                    Reset
-                  </button>
-                  <button 
-                    onClick={rebuildCache}
-                    disabled={!searchPath.trim()}
-                  >
-                    Rebuild Cache
-                  </button>
+                <div className="control-group">
+                  <div className="similarity-control">
+                    <label>Similarity:</label>
+                    <input
+                      type="range"
+                      min="0.00"
+                      max="1.00"
+                      step="0.01"
+                      value={similarity}
+                      onChange={handleSimilarityChange}
+                    />
+                    <span>{Number(similarity).toFixed(2)}</span>
+                  </div>
+                  <div className="similarity-control">
+                    <label>Color:</label>
+                    <input
+                      type="range"
+                      min="0.00"
+                      max="1.00"
+                      step="0.01"
+                      value={colorWeight}
+                      onChange={(e) => {
+                        const value = Number(e.target.value);
+                        setColorWeight(value);
+                        setShapeWeight(Math.round((1 - value) * 100) / 100);
+                      }}
+                    />
+                    <span>{Number(colorWeight).toFixed(2)}</span>
+                  </div>
+                  <div className="similarity-control">
+                    <label>Shape:</label>
+                    <input
+                      type="range"
+                      min="0.00"
+                      max="1.00"
+                      step="0.01"
+                      value={shapeWeight}
+                      onChange={(e) => {
+                        const value = Number(e.target.value);
+                        setShapeWeight(value);
+                        setColorWeight(Math.round((1 - value) * 100) / 100);
+                      }}
+                    />
+                    <span>{Number(shapeWeight).toFixed(2)}</span>
+                  </div>
+                  <div className="buttons">
+                    <button onClick={handleSearch} disabled={!searchPath.trim()}>
+                      <FaSearch /> Search
+                    </button>
+                    <button onClick={resetPreview} disabled={!searchPath.trim()}>
+                      Reset
+                    </button>
+                    <button onClick={rebuildCache} disabled={!searchPath.trim()}>
+                      Rebuild Cache
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

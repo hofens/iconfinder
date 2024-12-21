@@ -32,9 +32,9 @@ contextBridge.exposeInMainWorld('electron', {
       ipcRenderer.send('get-image-dimensions', filePath);
     });
   },
-  calculateImageSimilarity: async (sourcePath, targetPath) => {
+  calculateImageSimilarity: async (sourcePath, targetPath, weights) => {
     try {
-      return await ipcRenderer.invoke('calculate-similarity', sourcePath, targetPath);
+      return await ipcRenderer.invoke('calculate-similarity', sourcePath, targetPath, weights);
     } catch (error) {
       console.error('Error calculating similarity:', error);
       throw error;

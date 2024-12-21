@@ -165,24 +165,32 @@ body {
 
 /* Controls */
 .controls {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   padding: 12px;
   background-color: #f8fafc;
   border-radius: 8px;
   border: 1px solid #e2e8f0;
 }
 
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
 .similarity-control {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 8px;
   color: #2d3748;
 }
 
+.similarity-control label {
+  min-width: 60px;
+  font-size: 14px;
+}
+
 .similarity-control input[type="range"] {
-  width: 200px;
+  width: 120px;
   height: 4px;
   -webkit-appearance: none;
   background: #e2e8f0;
@@ -190,25 +198,8 @@ body {
   outline: none;
 }
 
-.similarity-control input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 16px;
-  height: 16px;
-  background: #3182ce;
-  border-radius: 50%;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border: 2px solid #fff;
-  box-shadow: 0 0 2px rgba(0,0,0,0.2);
-}
-
-.similarity-control input[type="range"]::-webkit-slider-thumb:hover {
-  background: #2c5282;
-  transform: scale(1.1);
-}
-
 .similarity-control span {
-  min-width: 70px;
+  min-width: 45px;
   text-align: center;
   font-family: monospace;
   font-size: 14px;
@@ -221,7 +212,8 @@ body {
 
 .buttons {
   display: flex;
-  gap: 10px;
+  gap: 8px;
+  margin-left: auto;
 }
 
 button {
@@ -575,4 +567,43 @@ button:disabled:hover {
 .upload-area.disabled:hover {
   border-color: #cbd5e0;
   background-color: #f8fafc;
+}
+
+.weight-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.weight-control input[type="range"] {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  background: #e2e8f0;
+  border-radius: 2px;
+  outline: none;
+}
+
+.weight-control input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  background: #3182ce;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid #fff;
+  box-shadow: 0 0 2px rgba(0,0,0,0.2);
+}
+
+.weight-control span {
+  min-width: 50px;
+  text-align: center;
+  font-family: monospace;
+  font-size: 14px;
+  color: #4a5568;
+  background: #f8fafc;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
 }
