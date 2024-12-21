@@ -119,40 +119,10 @@ function App() {
 
       const updatedResults = await Promise.all(results.map(async (fileEntry) => {
         try {
-          let size;
-          let dimensions;
-          
-          if (window.electron) {
-            // 获取实时的文件信息
-            size = await window.electron.getFileSize(fileEntry.path);
-            dimensions = await window.electron.getImageDimensions(fileEntry.path);
-          } else {
-            size = `${(fileEntry.size / 1024).toFixed(2)} KB`;
-            dimensions = await new Promise((resolve) => {
-              const img = new Image();
-              img.onload = () => {
-                resolve(`${img.naturalWidth}x${img.naturalHeight}`);
-                URL.revokeObjectURL(img.src);
-              };
-              img.onerror = () => {
-                resolve('Unknown dimensions');
-                URL.revokeObjectURL(img.src);
-              };
-              if (fileEntry.blob) {
-                img.src = URL.createObjectURL(fileEntry.blob);
-              } else {
-                resolve('Unknown dimensions');
-              }
-            });
-          }
-
-          let preview;
-          try {
-            preview = await getImagePreview(fileEntry);
-          } catch (error) {
-            console.error('Preview generation error:', error);
-            preview = '';
-          }
+          // 直接使用缓存的信息
+          let size = fileEntry.size;
+          let dimensions = fileEntry.dimensions;
+          let preview = fileEntry.preview;
           
           let similarityResult = 0;
           if (window.electron) {
@@ -207,7 +177,7 @@ function App() {
     }
   }
 
-  // Web环境下的简单相似���计算
+  // Web环境下的简单相似计算
   function calculateSimpleSimilarity(fileName1, fileName2) {
     const name1 = fileName1.toLowerCase();
     const name2 = fileName2.toLowerCase();
@@ -338,7 +308,7 @@ function App() {
     });
   };
 
-  const handleBrowseDirectory = () => {
+  const handleBrowseDirectory = async () => {
     const input = document.createElement('input');
     input.type = 'file';
     input.webkitdirectory = true;
@@ -347,62 +317,81 @@ function App() {
     input.onchange = async (e) => {
       const files = Array.from(e.target.files);
       if (files.length > 0) {
+        setStatus('正在扫描目录...');
+        
         // 过滤出图片文件
         const imageFiles = files.filter(file => 
           file.type.startsWith('image/') || 
           /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i.test(file.name)
         );
         
-        // 为每个文件创建 blob
-        const structure = await Promise.all(files.map(async file => {
-          let blob = null;
-          if (!window.electron) {
-            // 在 Web 环境中，我们需要保存文件的 blob
-            blob = file.slice();
-          }
-          
-          return {
+        // 为每个文件创建详细信息
+        const structure = await Promise.all(imageFiles.map(async file => {
+          let fileInfo = {
             name: file.name,
             path: window.electron ? file.path : (file.webkitRelativePath || file.name),
-            size: file.size,
             type: file.type,
-            blob: blob // 只在 Web 环境中使用
           };
+
+          try {
+            if (window.electron) {
+              // Electron环境：获取文件信息
+              setStatus(`正在处理: ${file.name}`);
+              fileInfo.size = await window.electron.getFileSize(file.path);
+              fileInfo.dimensions = await window.electron.getImageDimensions(file.path);
+              fileInfo.preview = await window.electron.getImagePreview(file.path);
+            } else {
+              // Web环境：处理文件信息
+              fileInfo.size = `${(file.size / 1024).toFixed(2)} KB`;
+              fileInfo.blob = file.slice();
+              
+              // 获取图片尺寸
+              fileInfo.dimensions = await new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                  resolve(`${img.naturalWidth}x${img.naturalHeight}`);
+                  URL.revokeObjectURL(img.src);
+                };
+                img.onerror = () => {
+                  resolve('Unknown dimensions');
+                  URL.revokeObjectURL(img.src);
+                };
+                img.src = URL.createObjectURL(file);
+              });
+
+              // 获取预览图
+              fileInfo.preview = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = () => resolve('');
+                reader.readAsDataURL(file);
+              });
+            }
+          } catch (error) {
+            console.error(`Error processing file ${file.name}:`, error);
+            fileInfo.size = 'Unknown size';
+            fileInfo.dimensions = 'Unknown dimensions';
+            fileInfo.preview = '';
+          }
+
+          return fileInfo;
         }));
 
         setDirectoryStructure(structure);
         
         // 获取选择的目录路径
         const firstFile = files[0];
-        let directoryPath;
-        
-        if (window.electron) {
-          directoryPath = firstFile.path.substring(0, firstFile.path.lastIndexOf(firstFile.name));
-        } else {
-          directoryPath = firstFile.webkitRelativePath.split('/')[0];
-        }
+        const directoryPath = window.electron 
+          ? firstFile.path.substring(0, firstFile.path.lastIndexOf(firstFile.name))
+          : firstFile.webkitRelativePath.split('/')[0];
         
         // 更新搜索路径
-        console.log('Selected directory:', directoryPath);
         setSearchPath(directoryPath);
         
         // 保存目录结构到 localStorage
         localStorage.setItem('directoryStructure', JSON.stringify(structure));
         
-        // 只在 Electron 环境下初始化缓存
-        if (window.electron) {
-          try {
-            setStatus('正在缓存目录中的图片信息...');
-            await window.electron.initializeImageCache(directoryPath);
-            setStatus(`目录缓存完成，共发现 ${files.length} 个文件，其中含 ${imageFiles.length} 个图片文件`);
-          } catch (error) {
-            console.error('Error initializing cache:', error);
-            setStatus('缓存初始化失败');
-          }
-        } else {
-          // Web 环境下的提示
-          setStatus(`已选择目录: ${directoryPath}\n共发现 ${files.length} 个文件，其中含 ${imageFiles.length} 个图片文件`);
-        }
+        setStatus(`目录扫描完成，共发现 ${files.length} 个文件，其中含 ${imageFiles.length} 个图片文件`);
       } else {
         setStatus('未选择任何目录');
         setSearchPath('');
@@ -417,7 +406,7 @@ function App() {
   const handleSimilarityChange = (e) => {
     const value = e.target.value;
     if (value >= 0 && value <= 1) {
-      // 将值四舍五入到2位小数
+      // 将值四舍五入到2位数
       const roundedValue = Math.round(value * 100) / 100;
       setSimilarity(roundedValue);
       setStatus(`调整相似度为: ${roundedValue.toFixed(2)}`);
@@ -544,7 +533,7 @@ function App() {
 
   const handleSearch = () => {
     if (searchFile) {
-      // 确保传入的是文件对象而不是事件对象
+      // 确保传���的是文件对象而不是事对象
       searchSimilarImages(searchFile);
     } else {
       setStatus('请先选择要搜索的图片文件');
@@ -644,7 +633,7 @@ function App() {
     'balanced': { label: '平衡模式', colorWeight: 0.5, shapeWeight: 0.5 }
   };
 
-  // 添加处理权重预设变化的函数
+  // 添加处理权重预设化的函数
   const handleWeightPresetChange = (e) => {
     const preset = e.target.value;
     setWeightPreset(preset);
@@ -677,8 +666,7 @@ function App() {
         // 获取最新的文件信息
         const stats = await window.electron.getFileSize(result.path);
         const dimensions = await window.electron.getImageDimensions(result.path);
-        
-        const similarityResult = await window.electron.calculateImageSimilarity(
+                const similarityResult = await window.electron.calculateImageSimilarity(
           searchFile.path,
           result.path,
           { 
@@ -696,7 +684,6 @@ function App() {
           similarityResult.shapeSimilarity * normalizedShapeWeight
         );
         
-        // 更新结果中的尺寸和大小信息
         searchResults[index] = {
           ...result,
           size: stats,  // 使用实时获取的文件大小
