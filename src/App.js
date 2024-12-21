@@ -27,7 +27,9 @@ function App() {
     setSimilarity(savedSettings.similarity || 0.9999);
     setExcludePaths(savedSettings.excludePaths || '');
     setIncludePaths(savedSettings.includePaths || '');
-
+    // 加载保存的目录结构
+    const savedStructure = JSON.parse(localStorage.getItem('directoryStructure')) || [];
+    setDirectoryStructure(savedStructure);
   }, []);
 
   // Save settings to localStorage whenever they change
@@ -161,6 +163,7 @@ function App() {
     setSelectedResult(null);
     setSearchResults([]);
     setStatus('');
+    // 不清除 searchPath 和 directoryStructure
   };
 
   const rebuildCache = () => {
@@ -204,23 +207,20 @@ function App() {
         console.log('Selected directory:', directoryPath);
         setSearchPath(directoryPath);
         
+        // 保存目录结构到 localStorage
+        localStorage.setItem('directoryStructure', JSON.stringify(structure));
+        
         // 显示详细的状态信息
         setStatus(
           `已选择目录: ${directoryPath}\n` +
           `共发现 ${files.length} 个文件，其中包含 ${imageFiles.length} 个图片文件`
         );
       } else {
-        // 未选择任何文件时的提示
         setStatus('未选择任何目录');
         setSearchPath('');
         setDirectoryStructure([]);
+        localStorage.removeItem('directoryStructure');
       }
-    };
-
-    // 处理取消选择的情况
-    input.oncancel = () => {
-      setStatus('已取消选择目录');
-      setTimeout(() => setStatus(''), 3000);
     };
 
     input.click();
@@ -318,7 +318,7 @@ function App() {
     if (searchFile) {
       searchSimilarImages(searchFile);
     } else {
-      setStatus('请先选择要搜索的图片文件');
+      setStatus('请先选择要搜索的���片文件');
     }
   };
 
@@ -344,7 +344,14 @@ function App() {
                 <input 
                   type="text" 
                   value={searchPath}
-                  onChange={(e) => setSearchPath(e.target.value)}
+                  onChange={(e) => {
+                    setSearchPath(e.target.value);
+                    // 当输入框被清空时，清除目录结构
+                    if (!e.target.value.trim()) {
+                      setDirectoryStructure([]);
+                      localStorage.removeItem('directoryStructure');
+                    }
+                  }}
                   placeholder="Enter directory path to search"
                 />
                 <button className="browse-btn" onClick={handleBrowseDirectory}>Browse</button>
