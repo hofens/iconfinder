@@ -229,7 +229,7 @@ function App() {
         // 显示详细的状态信息
         setStatus(
           `已选择目录: ${directoryPath}\n` +
-          `共发现 ${files.length} 个文件，其中包含 ${imageFiles.length} 个图片文件`
+          `共发现 ${files.length} 个文件，其中含 ${imageFiles.length} 个图片文件`
         );
       } else {
         setStatus('未选择任何目录');
@@ -380,13 +380,23 @@ function App() {
             <div className="section upload-section">
               <div className="upload-container">
                 <div 
-                  className="upload-area"
-                  onDrop={handleDrop}
-                  onDragOver={handleDragOver}
+                  className={`upload-area ${!searchPath.trim() ? 'disabled' : ''}`}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    if (searchPath.trim()) {
+                      handleDrop(e);
+                    }
+                  }}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    if (searchPath.trim()) {
+                      handleDragOver(e);
+                    }
+                  }}
                 >
                   <div className="upload-placeholder">
                     <FaUpload size={40} />
-                    <p>Drag and drop image here</p>
+                    <p>{searchPath.trim() ? 'Drag and drop image here' : 'Please select a directory first'}</p>
                     <p>or</p>
                     <input
                       type="file"
@@ -394,8 +404,12 @@ function App() {
                       onChange={handleFileSelect}
                       id="file-input"
                       style={{display: 'none'}}
+                      disabled={!searchPath.trim()}
                     />
-                    <label htmlFor="file-input" className="file-input-label">
+                    <label 
+                      htmlFor="file-input" 
+                      className={`file-input-label ${!searchPath.trim() ? 'disabled' : ''}`}
+                    >
                       Choose File
                     </label>
                   </div>
@@ -435,9 +449,24 @@ function App() {
                   <span>{Number(similarity).toFixed(4)}</span>
                 </div>
                 <div className="buttons">
-                  <button onClick={handleSearch}><FaSearch /> Search</button>
-                  <button onClick={resetPreview}>Reset</button>
-                  <button onClick={rebuildCache}>Rebuild Cache</button>
+                  <button 
+                    onClick={handleSearch}
+                    disabled={!searchPath.trim()}
+                  >
+                    <FaSearch /> Search
+                  </button>
+                  <button 
+                    onClick={resetPreview}
+                    disabled={!searchPath.trim()}
+                  >
+                    Reset
+                  </button>
+                  <button 
+                    onClick={rebuildCache}
+                    disabled={!searchPath.trim()}
+                  >
+                    Rebuild Cache
+                  </button>
                 </div>
               </div>
             </div>
