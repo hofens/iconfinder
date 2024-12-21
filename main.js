@@ -144,13 +144,22 @@ async function calculateSimilarityWithCache(sourcePath, targetPath, weights) {
     targetFeatures = await getImageFeatures(targetPath);
   }
 
-  // 计算相似度
-  const similarity = calculateSimilarityFromFeatures(sourceFeatures, targetFeatures, weights);
+  // 计算相似度并获取详细信息
+  const {
+    totalSimilarity,
+    colorSimilarity,
+    shapeSimilarity
+  } = calculateSimilarityFromFeatures(sourceFeatures, targetFeatures, weights);
   
   // 缓存计算结果
-  similarityCache.set(cacheKey, similarity);
+  const result = {
+    totalSimilarity,
+    colorSimilarity,
+    shapeSimilarity
+  };
+  similarityCache.set(cacheKey, result);
   
-  return similarity;
+  return result;
 }
 
 // 添加新的 IPC 处理器
@@ -214,29 +223,47 @@ async function getImageFeatures(imagePath) {
     const image = sharp(imagePath);
     const metadata = await image.metadata();
     
-    // 缩放图片到统一大小进行比较
+    // 增加分析尺寸以提高精度
     const resizedImage = await image
-      .resize(32, 32, { fit: 'fill' })
+      .resize(128, 128, { fit: 'fill' })  // 增加到 128x128 以提高精度
       .removeAlpha()
       .raw()
       .toBuffer();
 
-    // 计算颜色直方图
-    const histogram = new Array(768).fill(0); // 256*3 for RGB
+    // 计算颜色直方图，使用更多的颜色区间
+    const histogram = new Array(768).fill(0);
+    let dominantColors = new Array(3).fill(0);
+    let pixelCount = 0;
+
     for (let i = 0; i < resizedImage.length; i += 3) {
-      histogram[resizedImage[i]]++; // R
-      histogram[256 + resizedImage[i + 1]]++; // G
-      histogram[512 + resizedImage[i + 2]]++; // B
+      const r = resizedImage[i];
+      const g = resizedImage[i + 1];
+      const b = resizedImage[i + 2];
+
+      histogram[r]++;
+      histogram[256 + g]++;
+      histogram[512 + b]++;
+
+      // 累加颜色值以计算平均色
+      dominantColors[0] += r;
+      dominantColors[1] += g;
+      dominantColors[2] += b;
+      pixelCount++;
     }
 
+    // 计算平均色
+    dominantColors = dominantColors.map(sum => Math.round(sum / pixelCount));
+
     // 归一化直方图
-    const sum = histogram.reduce((a, b) => a + b, 0);
+    const sum = histogram.reduce((a, b) => a + b, 0) / 3; // 除以3因为我们有RGB三个通道
     const normalizedHistogram = histogram.map(v => v / sum);
 
     return {
       dimensions: [metadata.width, metadata.height],
       aspectRatio: metadata.width / metadata.height,
-      histogram: normalizedHistogram
+      histogram: normalizedHistogram,
+      dominantColors,
+      originalSize: metadata.size
     };
   } catch (error) {
     console.error('Error getting image features:', error);
@@ -244,23 +271,7 @@ async function getImageFeatures(imagePath) {
   }
 }
 
-// 改进形状相似度计算
-function calculateShapeSimilarity(ratio1, ratio2, dims1, dims2) {
-  // 计算宽高比相似度
-  const ratioSimilarity = Math.min(ratio1, ratio2) / Math.max(ratio1, ratio2);
-  
-  // 计算尺寸相似度
-  const [width1, height1] = dims1;
-  const [width2, height2] = dims2;
-  const maxDim1 = Math.max(width1, height1);
-  const maxDim2 = Math.max(width2, height2);
-  const sizeSimilarity = Math.min(maxDim1, maxDim2) / Math.max(maxDim1, maxDim2);
-  
-  // 综合考虑宽高比和尺寸
-  return (ratioSimilarity * 0.7 + sizeSimilarity * 0.3);
-}
-
-// 改进颜色直方图相似度计算
+// 修改颜色直方图相似度计算函数
 function calculateHistogramSimilarity(hist1, hist2) {
   let similarity = 0;
   const weights = {
@@ -269,17 +280,72 @@ function calculateHistogramSimilarity(hist1, hist2) {
     b: 0.25  // 蓝色通道权重
   };
 
-  // 分别计算RGB通道的相似度
+  // 使用欧几里得距离计算颜色差异
+  let rDiff = 0;
+  let gDiff = 0;
+  let bDiff = 0;
+
   for (let i = 0; i < 256; i++) {
-    // 红色通道
-    similarity += weights.r * Math.sqrt(hist1[i] * hist2[i]);
-    // 绿色通道
-    similarity += weights.g * Math.sqrt(hist1[i + 256] * hist2[i + 256]);
-    // 蓝色通道
-    similarity += weights.b * Math.sqrt(hist1[i + 512] * hist2[i + 512]);
+    // 获取每个通道的值
+    const r1 = hist1[i];
+    const r2 = hist2[i];
+    const g1 = hist1[i + 256];
+    const g2 = hist2[i + 256];
+    const b1 = hist1[i + 512];
+    const b2 = hist2[i + 512];
+
+    // 计算加权的欧几里得距离
+    rDiff += weights.r * Math.pow(r1 - r2, 2);
+    gDiff += weights.g * Math.pow(g1 - g2, 2);
+    bDiff += weights.b * Math.pow(b1 - b2, 2);
+
+    // 考虑颜色的相对分布
+    if (r1 > 0 && r2 > 0) {
+      similarity += weights.r * Math.min(r1, r2) / Math.max(r1, r2);
+    }
+    if (g1 > 0 && g2 > 0) {
+      similarity += weights.g * Math.min(g1, g2) / Math.max(g1, g2);
+    }
+    if (b1 > 0 && b2 > 0) {
+      similarity += weights.b * Math.min(b1, b2) / Math.max(b1, b2);
+    }
   }
 
-  return similarity;
+  // 计算最终的颜色相似度
+  const euclideanSimilarity = 1 - Math.sqrt(rDiff + gDiff + bDiff);
+  const distributionSimilarity = similarity / 256;
+
+  // 组合两种相似度计算方法
+  const finalSimilarity = (euclideanSimilarity * 0.6 + distributionSimilarity * 0.4);
+
+  // 使用 sigmoid 函数使结果更平滑
+  const sigmoid = x => 1 / (1 + Math.exp(-10 * (x - 0.5)));
+  
+  return sigmoid(finalSimilarity);
+}
+
+// 修改形状相似度计算函数
+function calculateShapeSimilarity(ratio1, ratio2, dims1, dims2) {
+  // 完全相同的图片返回1
+  if (ratio1 === ratio2 && 
+      dims1[0] === dims2[0] && 
+      dims1[1] === dims2[1]) {
+    return 1;
+  }
+  
+  // 计算宽高比相似度（使用指数函数使差异更平滑）
+  const ratioSimilarity = Math.exp(-Math.abs(ratio1 - ratio2));
+  
+  // 计算尺寸相似度（使用对数尺度减小大尺寸差异的影响）
+  const [width1, height1] = dims1;
+  const [width2, height2] = dims2;
+  const area1 = width1 * height1;
+  const area2 = width2 * height2;
+  const areaRatio = Math.min(area1, area2) / Math.max(area1, area2);
+  const sizeSimilarity = Math.pow(areaRatio, 0.5); // 使用平方根减小差异影响
+  
+  // 综合考虑宽高比和尺寸，调整权重
+  return (ratioSimilarity * 0.4 + sizeSimilarity * 0.6);
 }
 
 // 添加获取图片预览的 IPC 处理器
@@ -322,18 +388,30 @@ app.on('activate', () => {
   }
 });
 
-// 添加计算相似度的函数
+// 修改最终相似度计算函数
 function calculateSimilarityFromFeatures(sourceFeatures, targetFeatures, weights) {
-  // 使用传入的权重
+  // 检查是否为完全相同的图片
+  const isSameImage = 
+    sourceFeatures.dimensions[0] === targetFeatures.dimensions[0] &&
+    sourceFeatures.dimensions[1] === targetFeatures.dimensions[1] &&
+    sourceFeatures.histogram.every((value, index) => value === targetFeatures.histogram[index]);
+
+  if (isSameImage) {
+    // 返回完整的相似度信息对象，而不是简单的数字 1
+    return {
+      totalSimilarity: 1,
+      colorSimilarity: 1,
+      shapeSimilarity: 1
+    };
+  }
+
   const { colorWeight = 0.7, shapeWeight = 0.3 } = weights;
 
-  // 计算颜色相似度（巴氏距离）
   const histogramSimilarity = calculateHistogramSimilarity(
     sourceFeatures.histogram,
     targetFeatures.histogram
   );
 
-  // 计算形状相似度
   const shapeSimilarity = calculateShapeSimilarity(
     sourceFeatures.aspectRatio,
     targetFeatures.aspectRatio,
@@ -341,22 +419,28 @@ function calculateSimilarityFromFeatures(sourceFeatures, targetFeatures, weights
     targetFeatures.dimensions
   );
 
-  // 根据不同模式调整相似度计算
+  // 使用非线性函数调整相似度权重
   let totalSimilarity;
-  if (colorWeight >= 0.7) { // 颜色优先模式
-    // 增加颜色直方图的精度，使用更多的颜色区间
-    const enhancedHistogramSimilarity = Math.pow(histogramSimilarity, 0.8); // 减小差异的影响
-    totalSimilarity = (colorWeight * enhancedHistogramSimilarity + shapeWeight * shapeSimilarity);
-  } else if (shapeWeight >= 0.7) { // 形状优先模式
-    // 增加形状特征的权重，考虑更多的形状特征
-    const enhancedShapeSimilarity = Math.pow(shapeSimilarity, 0.8);
+  if (colorWeight >= 0.7) {
+    // 颜色优先模式：增强颜色相似度的影响
+    const enhancedHistogramSimilarity = Math.pow(histogramSimilarity, 0.7);
+    // 减小尺寸差异的惩罚
+    const adjustedShapeSimilarity = Math.pow(shapeSimilarity, 1.5);
+    totalSimilarity = (colorWeight * enhancedHistogramSimilarity + shapeWeight * adjustedShapeSimilarity);
+  } else if (shapeWeight >= 0.7) {
+    // 形状优先模式
+    const enhancedShapeSimilarity = Math.pow(shapeSimilarity, 0.7);
     totalSimilarity = (colorWeight * histogramSimilarity + shapeWeight * enhancedShapeSimilarity);
-  } else { // 平衡模式
-    // 使用标准的相似度计算
-    totalSimilarity = (colorWeight * histogramSimilarity + shapeWeight * shapeSimilarity);
+  } else {
+    // 平衡模式：使用更平滑的加权
+    const balancedHistogram = Math.pow(histogramSimilarity, 0.8);
+    const balancedShape = Math.pow(shapeSimilarity, 0.8);
+    totalSimilarity = (colorWeight * balancedHistogram + shapeWeight * balancedShape);
   }
 
-  // 记录计算过程
+  // 应用最终的相似度调整
+  totalSimilarity = Math.pow(totalSimilarity, 0.9);
+
   console.log(`Similarity calculation:
     Mode: ${colorWeight >= 0.7 ? 'Color Priority' : shapeWeight >= 0.7 ? 'Shape Priority' : 'Balanced'}
     Color Weight: ${colorWeight.toFixed(2)}
@@ -364,7 +448,12 @@ function calculateSimilarityFromFeatures(sourceFeatures, targetFeatures, weights
     Color Similarity: ${histogramSimilarity.toFixed(4)}
     Shape Similarity: ${shapeSimilarity.toFixed(4)}
     Total Similarity: ${totalSimilarity.toFixed(4)}
+    Is Same Image: ${isSameImage}
   `);
 
-  return totalSimilarity;
+  return {
+    totalSimilarity,
+    colorSimilarity: histogramSimilarity,
+    shapeSimilarity
+  };
 }

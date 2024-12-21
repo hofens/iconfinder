@@ -129,24 +129,26 @@ function App() {
             preview = '';
           }
           
-          let similarityScore = 0;
+          let similarityResult = 0;
           if (window.electron) {
-            similarityScore = await window.electron.calculateImageSimilarity(
+            const result = await window.electron.calculateImageSimilarity(
               filePath,
               fileEntry.path,
               { colorWeight, shapeWeight }
             );
+            // 使用 totalSimilarity 作为相似度值
+            similarityResult = result.totalSimilarity;
           } else {
-            similarityScore = calculateSimpleSimilarity(file.name, fileEntry.name);
+            similarityResult = calculateSimpleSimilarity(file.name, fileEntry.name);
           }
 
-          if (similarityScore >= similarity) {
+          if (similarityResult >= similarity) {
             return {
               path: fileEntry.path,
               name: fileEntry.name,
               size,
               dimensions,
-              similarity: similarityScore.toFixed(2),
+              similarity: similarityResult.toFixed(4),
               preview: preview
             };
           }
@@ -634,6 +636,34 @@ function App() {
     setSimilarityTimer(timer);
   };
 
+  const handleResultClick = async (index) => {
+    setSelectedResult(index);
+    const result = searchResults[index];
+    
+    try {
+      if (window.electron && searchFile) {
+        const similarityResult = await window.electron.calculateImageSimilarity(
+          searchFile.path,
+          result.path,
+          { colorWeight, shapeWeight }
+        );
+        
+        // 更新搜索结果中的相似度信息，统一使用 4 位小数
+        searchResults[index] = {
+          ...result,
+          similarity: similarityResult.totalSimilarity.toFixed(4),
+          colorSimilarity: similarityResult.colorSimilarity.toFixed(4),
+          shapeSimilarity: similarityResult.shapeSimilarity.toFixed(4),
+          totalSimilarity: similarityResult.totalSimilarity.toFixed(4)
+        };
+        
+        setSearchResults([...searchResults]);
+      }
+    } catch (error) {
+      console.error('Error updating result details:', error);
+    }
+  };
+
   return (
     <div className="App">
       <div className="container" style={{ display: 'flex' }}>
@@ -778,7 +808,7 @@ function App() {
                       <div 
                         key={index}
                         className={`result-item ${selectedResult === index ? 'selected' : ''}`}
-                        onClick={() => setSelectedResult(index)}
+                        onClick={() => handleResultClick(index)}
                         onDoubleClick={() => handleDoubleClick(result.name)}
                       >
                         <div className="result-image">
@@ -812,7 +842,13 @@ function App() {
                         <p data-label="Name:">{searchResults[selectedResult].name}</p>
                         <p data-label="Size:">{searchResults[selectedResult].size}</p>
                         <p data-label="Dimensions:">{searchResults[selectedResult].dimensions}</p>
-                        <p data-label="Similarity:">{searchResults[selectedResult].similarity}</p>
+                        <p data-label="Total Similarity:">{searchResults[selectedResult].totalSimilarity || searchResults[selectedResult].similarity}</p>
+                        {searchResults[selectedResult].colorSimilarity && (
+                          <p data-label="Color Similarity:">{searchResults[selectedResult].colorSimilarity}</p>
+                        )}
+                        {searchResults[selectedResult].shapeSimilarity && (
+                          <p data-label="Shape Similarity:">{searchResults[selectedResult].shapeSimilarity}</p>
+                        )}
                       </div>
                     </div>
                   ) : (
