@@ -48,6 +48,14 @@ contextBridge.exposeInMainWorld('electron', {
       console.error('Error getting image preview:', error);
       throw error;
     }
+  },
+  initializeImageCache: async (directoryPath) => {
+    try {
+      return await ipcRenderer.invoke('initialize-image-cache', directoryPath);
+    } catch (error) {
+      console.error('Error initializing image cache:', error);
+      throw error;
+    }
   }
 });
 window.addEventListener('DOMContentLoaded', () => {

@@ -355,10 +355,20 @@ function App() {
         // 保存目录结构到 localStorage
         localStorage.setItem('directoryStructure', JSON.stringify(structure));
         
-        setStatus(
-          `已选择目录: ${directoryPath}\n` +
-          `共发现 ${files.length} 个文件，其中含 ${imageFiles.length} 个图片文件`
-        );
+        // 只在 Electron 环境下初始化缓存
+        if (window.electron) {
+          try {
+            setStatus('正在缓存目录中的图片信息...');
+            await window.electron.initializeImageCache(directoryPath);
+            setStatus(`目录缓存完成，共发现 ${files.length} 个文件，其中含 ${imageFiles.length} 个图片文件`);
+          } catch (error) {
+            console.error('Error initializing cache:', error);
+            setStatus('缓存初始化失败');
+          }
+        } else {
+          // Web 环境下的提示
+          setStatus(`已选择目录: ${directoryPath}\n共发现 ${files.length} 个文件，其中含 ${imageFiles.length} 个图片文件`);
+        }
       } else {
         setStatus('未选择任何目录');
         setSearchPath('');
