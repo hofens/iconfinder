@@ -119,8 +119,33 @@ function App() {
 
       const updatedResults = await Promise.all(results.map(async (fileEntry) => {
         try {
-          const size = await getFileSize(fileEntry.path);
-          const dimensions = await getImageDimensions(fileEntry.path);
+          let size;
+          let dimensions;
+          
+          if (window.electron) {
+            // 获取实时的文件信息
+            size = await window.electron.getFileSize(fileEntry.path);
+            dimensions = await window.electron.getImageDimensions(fileEntry.path);
+          } else {
+            size = `${(fileEntry.size / 1024).toFixed(2)} KB`;
+            dimensions = await new Promise((resolve) => {
+              const img = new Image();
+              img.onload = () => {
+                resolve(`${img.naturalWidth}x${img.naturalHeight}`);
+                URL.revokeObjectURL(img.src);
+              };
+              img.onerror = () => {
+                resolve('Unknown dimensions');
+                URL.revokeObjectURL(img.src);
+              };
+              if (fileEntry.blob) {
+                img.src = URL.createObjectURL(fileEntry.blob);
+              } else {
+                resolve('Unknown dimensions');
+              }
+            });
+          }
+
           let preview;
           try {
             preview = await getImagePreview(fileEntry);
@@ -134,10 +159,20 @@ function App() {
             const result = await window.electron.calculateImageSimilarity(
               filePath,
               fileEntry.path,
-              { colorWeight, shapeWeight }
+              { 
+                colorWeight, 
+                shapeWeight,
+                threshold: similarity 
+              }
             );
-            // 使用 totalSimilarity 作为相似度值
-            similarityResult = result.totalSimilarity;
+            
+            const normalizedColorWeight = colorWeight / (colorWeight + shapeWeight);
+            const normalizedShapeWeight = shapeWeight / (colorWeight + shapeWeight);
+            
+            similarityResult = (
+              result.colorSimilarity * normalizedColorWeight + 
+              result.shapeSimilarity * normalizedShapeWeight
+            );
           } else {
             similarityResult = calculateSimpleSimilarity(file.name, fileEntry.name);
           }
@@ -172,7 +207,7 @@ function App() {
     }
   }
 
-  // Web环境下的简单相似度计算
+  // Web环境下的简单相似���计算
   function calculateSimpleSimilarity(fileName1, fileName2) {
     const name1 = fileName1.toLowerCase();
     const name2 = fileName2.toLowerCase();
@@ -191,6 +226,8 @@ function App() {
     if (window.electron) {
       try {
         const size = await window.electron.getFileSize(filePath);
+        // return `${(size / 1024).toFixed(2)} KB`;
+        // todo
         return size;
       } catch (error) {
         console.error('Error getting file size:', error);
@@ -206,33 +243,28 @@ function App() {
   const getImageDimensions = async (filePath) => {
     if (window.electron) {
       try {
-        return await window.electron.getImageDimensions(filePath);
+        const dimensions = await window.electron.getImageDimensions(filePath);
+        return dimensions;
       } catch (error) {
         console.error('Error getting dimensions:', error);
         return 'Unknown dimensions';
       }
     } else {
       try {
-        // Web 环境下从 directoryStructure 中获取文件
         const fileEntry = directoryStructure.find(f => f.path === filePath);
-        if (!fileEntry) return 'Unknown dimensions';
+        if (!fileEntry || !fileEntry.blob) return 'Unknown dimensions';
 
-        // 创建一个新的 File 对象
-        const file = new File([fileEntry.blob || ''], fileEntry.name, {
-          type: fileEntry.type
-        });
-        
         return new Promise((resolve) => {
           const img = new Image();
           img.onload = () => {
             resolve(`${img.naturalWidth}x${img.naturalHeight}`);
-            URL.revokeObjectURL(img.src); // 清理 URL
+            URL.revokeObjectURL(img.src);
           };
           img.onerror = () => {
             resolve('Unknown dimensions');
-            URL.revokeObjectURL(img.src); // 清理 URL
+            URL.revokeObjectURL(img.src);
           };
-          img.src = URL.createObjectURL(file);
+          img.src = URL.createObjectURL(fileEntry.blob);
         });
       } catch (error) {
         console.error('Error getting dimensions:', error);
@@ -357,7 +389,7 @@ function App() {
         // 保存目录结构到 localStorage
         localStorage.setItem('directoryStructure', JSON.stringify(structure));
         
-        // 只在 Electron 环境下初始化���存
+        // 只在 Electron 环境下初始化缓存
         if (window.electron) {
           try {
             setStatus('正在缓存目录中的图片信息...');
@@ -369,7 +401,7 @@ function App() {
           }
         } else {
           // Web 环境下的提示
-          setStatus(`已选择目录: ${directoryPath}\n共发现 ${files.length} ��文件，其中含 ${imageFiles.length} 个图片文件`);
+          setStatus(`已选择目录: ${directoryPath}\n共发现 ${files.length} 个文件，其中含 ${imageFiles.length} 个图片文件`);
         }
       } else {
         setStatus('未选择任何目录');
@@ -641,20 +673,38 @@ function App() {
     const result = searchResults[index];
     
     try {
-      if (window.electron && searchFile) {
+      if (window.electron) {
+        // 获取最新的文件信息
+        const stats = await window.electron.getFileSize(result.path);
+        const dimensions = await window.electron.getImageDimensions(result.path);
+        
         const similarityResult = await window.electron.calculateImageSimilarity(
           searchFile.path,
           result.path,
-          { colorWeight, shapeWeight }
+          { 
+            colorWeight, 
+            shapeWeight,
+            threshold: similarity 
+          }
         );
         
-        // 更新搜索结果中的相似度信息，统一使用 4 位小数
+        const normalizedColorWeight = colorWeight / (colorWeight + shapeWeight);
+        const normalizedShapeWeight = shapeWeight / (colorWeight + shapeWeight);
+        
+        const totalSimilarity = (
+          similarityResult.colorSimilarity * normalizedColorWeight + 
+          similarityResult.shapeSimilarity * normalizedShapeWeight
+        );
+        
+        // 更新结果中的尺寸和大小信息
         searchResults[index] = {
           ...result,
-          similarity: similarityResult.totalSimilarity.toFixed(4),
+          size: stats,  // 使用实时获取的文件大小
+          dimensions: dimensions,  // 使用实时获取的图片尺寸
           colorSimilarity: similarityResult.colorSimilarity.toFixed(4),
           shapeSimilarity: similarityResult.shapeSimilarity.toFixed(4),
-          totalSimilarity: similarityResult.totalSimilarity.toFixed(4)
+          totalSimilarity: totalSimilarity.toFixed(4),
+          similarity: totalSimilarity.toFixed(4)
         };
         
         setSearchResults([...searchResults]);
