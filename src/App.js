@@ -93,9 +93,8 @@ function App() {
     }
 
     let results = [];
-    const filePath = file.webkitRelativePath || file.path || file.name;
+    const filePath = window.electron ? file.path : (file.webkitRelativePath || file.name);
     
-    // 过滤图片文件
     results = directoryStructure.filter(fileEntry => {
       // 确保只搜索图片文件
       const isImage = fileEntry.type.startsWith('image/') || 
@@ -104,9 +103,10 @@ function App() {
       if (!isImage) return false;
 
       if (window.electron) {
-        return fileEntry.path.includes(filePath);
+        // Electron 环境下使用完整路径匹配
+        return fileEntry.path.toLowerCase().includes(file.name.toLowerCase());
       } else {
-        // Web 环境下使用文件名进行匹配
+        // Web 环境下使用文件名匹配
         return fileEntry.name.toLowerCase().includes(file.name.toLowerCase());
       }
     });
@@ -143,56 +143,45 @@ function App() {
 
   // Update getFileSize to use ipcRenderer
   const getFileSize = async (filePath) => {
-    console.log(`Attempting to get file size for ${filePath}`);
     if (window.electron) {
-      const size = await window.electron.getFileSize(filePath);
-      console.log(`File size for ${filePath}: ${size}`);
-      return size;
-    } else {
-      // Web 环境下，从 directoryStructure 中查找文件
-      const file = directoryStructure.find(f => f.path === filePath);
-      if (file && file.size) {
-        return `${(file.size / 1024).toFixed(2)} KB`;
+      try {
+        const size = await window.electron.getFileSize(filePath);
+        return size;
+      } catch (error) {
+        console.error('Error getting file size:', error);
+        return 'Unknown size';
       }
-      return 'Unknown size';
+    } else {
+      const file = directoryStructure.find(f => f.path === filePath);
+      return file?.size ? `${(file.size / 1024).toFixed(2)} KB` : 'Unknown size';
     }
   };
 
   // 辅助函数：获取图片尺寸
   const getImageDimensions = async (filePath) => {
-    console.log(`Attempting to get image dimensions for ${filePath}`);
     if (window.electron) {
-      const dimensions = await window.electron.getImageDimensions(filePath);
-      console.log(`Image dimensions for ${filePath}: ${dimensions}`);
-      return dimensions;
-    } else {
       try {
-        // Web 环境下从 directoryStructure 中获取文件
-        const file = directoryStructure.find(f => f.path === filePath);
-        if (!file) {
-          return 'Unknown dimensions';
-        }
-
-        // 创建临时的 URL 来加载图片
-        const url = URL.createObjectURL(new Blob([file], { type: file.type }));
-        const img = new Image();
-        
-        const dimensions = await new Promise((resolve, reject) => {
-          img.onload = () => {
-            const dims = `${img.naturalWidth}x${img.naturalHeight}`;
-            URL.revokeObjectURL(url);
-            resolve(dims);
-          };
-          img.onerror = () => {
-            URL.revokeObjectURL(url);
-            reject(new Error('Failed to load image'));
-          };
-          img.src = url;
-        });
-        
-        return dimensions;
+        return await window.electron.getImageDimensions(filePath);
       } catch (error) {
         console.error('Error getting dimensions:', error);
+        return 'Unknown dimensions';
+      }
+    } else {
+      try {
+        const file = directoryStructure.find(f => f.path === filePath);
+        if (!file) return 'Unknown dimensions';
+        
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => {
+            resolve(`${img.naturalWidth}x${img.naturalHeight}`);
+          };
+          img.onerror = () => {
+            resolve('Unknown dimensions');
+          };
+          img.src = URL.createObjectURL(file);
+        });
+      } catch (error) {
         return 'Unknown dimensions';
       }
     }
@@ -255,10 +244,10 @@ function App() {
           /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i.test(file.name)
         );
         
-        // 保存更多文件信息
+        // 根据环境保存不同的文件信息
         const structure = files.map(file => ({
           name: file.name,
-          path: file.webkitRelativePath || file.path || file.name,
+          path: window.electron ? file.path : (file.webkitRelativePath || file.name),
           size: file.size,
           type: file.type
         }));
@@ -401,6 +390,83 @@ function App() {
       }
     };
   }, [similarityTimer]);
+
+  // 修改路径处理函数，确保跨平台兼容
+  const getPathFromFile = (file) => {
+    if (window.electron) {
+      // Electron 环境 (Windows/Mac)
+      return file.path;
+    } else {
+      // Web 环境
+      return file.webkitRelativePath || file.name;
+    }
+  };
+
+  const getDirectoryPath = (file) => {
+    if (window.electron) {
+      // Electron 环境
+      if (process.platform === 'win32') {
+        // Windows
+        return file.path.substring(0, file.path.lastIndexOf('\\'));
+      } else {
+        // Mac/Linux
+        return file.path.substring(0, file.path.lastIndexOf('/'));
+      }
+    } else {
+      // Web 环境
+      return file.webkitRelativePath.split('/')[0];
+    }
+  };
+
+  const isImageFile = (file) => {
+    const imageTypes = /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i;
+    return file.type.startsWith('image/') || imageTypes.test(file.name);
+  };
+
+  const saveToStorage = (key, data) => {
+    try {
+      localStorage.setItem(key, JSON.stringify(data));
+    } catch (error) {
+      console.error('Storage error:', error);
+    }
+  };
+
+  const loadFromStorage = (key, defaultValue = null) => {
+    try {
+      const data = localStorage.getItem(key);
+      return data ? JSON.parse(data) : defaultValue;
+    } catch (error) {
+      console.error('Storage error:', error);
+      return defaultValue;
+    }
+  };
+
+  const handleError = (error, operation) => {
+    console.error(`Error during ${operation}:`, error);
+    const message = window.electron 
+      ? `操作失败: ${error.message}`
+      : '操作失败，请检查浏览器控制台';
+    setStatus(message);
+  };
+
+  const getPlatformInfo = () => {
+    if (window.electron) {
+      return {
+        isElectron: true,
+        platform: process.platform,
+        isWindows: process.platform === 'win32',
+        isMac: process.platform === 'darwin',
+        isLinux: process.platform === 'linux'
+      };
+    }
+    return {
+      isElectron: false,
+      platform: 'web',
+      isWindows: false,
+      isMac: false,
+      isLinux: false
+    };
+  };
 
   return (
     <div className="App">

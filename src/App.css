@@ -3,6 +3,7 @@ body {
   padding: 0;
   min-height: 100vh;
   background-color: #f5f7fa;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 .App {
@@ -440,6 +441,7 @@ button:hover {
 /* Scrollbar Styling */
 ::-webkit-scrollbar {
   width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -448,7 +450,7 @@ button:hover {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e0;
+  background: #888;
   border-radius: 4px;
 }
 

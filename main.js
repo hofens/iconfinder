@@ -4,7 +4,13 @@ const path = require('path');
 const sharp = require('sharp');
 
 function normalizePath(filePath) {
-  return path.normalize(filePath).replace(/\\/g, path.sep);
+  if (process.platform === 'win32') {
+    // Windows
+    return path.normalize(filePath).replace(/\//g, '\\');
+  } else {
+    // Mac/Linux
+    return path.normalize(filePath).replace(/\\/g, '/');
+  }
 }
 
 function createWindow() {
@@ -19,7 +25,11 @@ function createWindow() {
       enableRemoteModule: false,
       nodeIntegration: false,
     },
+    autoHideMenuBar: true,
+    menuBarVisible: false,
   });
+
+  // win.setMenu(null);
 
   if (process.env.NODE_ENV === 'development') {
     win.loadURL('http://localhost:3000');
@@ -46,7 +56,7 @@ function createWindow() {
 app.whenReady().then(createWindow);
 
 ipcMain.on('get-file-size', (event, filePath) => {
-  const absolutePath = normalizePath(path.resolve(filePath));
+  const absolutePath = normalizePath(filePath);
   console.log(`get-file-size Checking file size for: ${absolutePath}`);
   fs.stat(absolutePath, (err, stats) => {
     if (err) {
@@ -59,10 +69,9 @@ ipcMain.on('get-file-size', (event, filePath) => {
 });
 
 ipcMain.on('get-image-dimensions', (event, filePath) => {
-  const absolutePath = normalizePath(path.resolve(filePath));
+  const absolutePath = normalizePath(filePath);
   console.log(`get-image-dimensions Checking image dimensions for: ${absolutePath}`);
   
-  // 使用图像库（如 sharp）来获取图像尺寸
   sharp(absolutePath)
     .metadata()
     .then(metadata => {
