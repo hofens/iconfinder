@@ -177,21 +177,51 @@ function App() {
   const handleBrowseDirectory = () => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.webkitdirectory = true; // Allow directory selection
-    input.multiple = true; // Allow multiple files to be selected
+    input.webkitdirectory = true;
+    input.multiple = true;
 
     input.onchange = (e) => {
       const files = Array.from(e.target.files);
-      const structure = files.map(file => ({
-        name: file.name,
-        path: file.path // Get the absolute path
-      }));
-      setDirectoryStructure(structure);
-      // Store the base directory path
-      const basePath = files[0].path.split('/').slice(0, -1).join('/'); // Construct the base path from the first file's path
-      console.log(basePath);
-      setSearchPath(basePath);
+      if (files.length > 0) {
+        // 过滤出图片文件
+        const imageFiles = files.filter(file => 
+          file.type.startsWith('image/') || 
+          /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i.test(file.name)
+        );
+        
+        const structure = files.map(file => ({
+          name: file.name,
+          path: file.path
+        }));
+        setDirectoryStructure(structure);
+        
+        // 获取选择的目录路径
+        const firstFile = files[0];
+        const directoryPath = firstFile.path.substring(0, firstFile.path.lastIndexOf(firstFile.name));
+        
+        // 更新搜索路径
+        console.log('Selected directory:', directoryPath);
+        setSearchPath(directoryPath);
+        
+        // 显示详细的状态信息
+        setStatus(
+          `已选择目录: ${directoryPath}\n` +
+          `共发现 ${files.length} 个文件，其中包含 ${imageFiles.length} 个图片文件`
+        );
+      } else {
+        // 未选择任何文件时的提示
+        setStatus('未选择任何目录');
+        setSearchPath('');
+        setDirectoryStructure([]);
+      }
     };
+
+    // 处理取消选择的情况
+    input.oncancel = () => {
+      setStatus('已取消选择目录');
+      setTimeout(() => setStatus(''), 3000);
+    };
+
     input.click();
   };
 
@@ -414,7 +444,7 @@ function App() {
             </div>
 
             <div className="section status-section">
-              <div className="status-message">
+              <div className="status-message" style={{ whiteSpace: 'pre-line' }}>
                 {status || 'Ready to process'}
               </div>
             </div>
