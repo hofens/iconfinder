@@ -333,19 +333,59 @@ function calculateShapeSimilarity(ratio1, ratio2, dims1, dims2) {
     return 1;
   }
   
-  // 计算宽高比相似度（使用指数函数使差异更平滑）
-  const ratioSimilarity = Math.exp(-Math.abs(ratio1 - ratio2));
+  // 1. 计算宽高比相似度（使用高斯函数使差异更平滑）
+  const ratioDiff = Math.abs(ratio1 - ratio2);
+  const ratioSimilarity = Math.exp(-(ratioDiff * ratioDiff) / 0.5);
   
-  // 计算尺寸相似度（使用对数尺度减小大尺寸差异的影响）
+  // 2. 计算尺寸相似度
   const [width1, height1] = dims1;
   const [width2, height2] = dims2;
+  
+  // 2.1 面积相似度（使用对数尺度）
   const area1 = width1 * height1;
   const area2 = width2 * height2;
-  const areaRatio = Math.min(area1, area2) / Math.max(area1, area2);
-  const sizeSimilarity = Math.pow(areaRatio, 0.5); // 使用平方根减小差异影响
+  const logArea1 = Math.log(area1);
+  const logArea2 = Math.log(area2);
+  const areaDiff = Math.abs(logArea1 - logArea2);
+  const areaSimilarity = Math.exp(-areaDiff / 10);
   
-  // 综合考虑宽高比和尺寸，调整权重
-  return (ratioSimilarity * 0.4 + sizeSimilarity * 0.6);
+  // 2.2 边长比例相似度
+  const widthRatio = Math.min(width1, width2) / Math.max(width1, width2);
+  const heightRatio = Math.min(height1, height2) / Math.max(height1, height2);
+  const dimensionSimilarity = (widthRatio + heightRatio) / 2;
+  
+  // 2.3 方向一致性（判断是否都是横向或纵向）
+  const isHorizontal1 = width1 > height1;
+  const isHorizontal2 = width2 > height2;
+  const orientationMatch = isHorizontal1 === isHorizontal2 ? 1 : 0.8;
+  
+  // 3. 计算最终的形状相似度
+  const sizeSimilarity = (
+    areaSimilarity * 0.4 +      // 面积相似度权重
+    dimensionSimilarity * 0.4 + // 边长比例权重
+    orientationMatch * 0.2      // 方向一致性权重
+  );
+  
+  // 4. 组合宽高比相似度和尺寸相似度
+  const shapeSimilarity = (
+    ratioSimilarity * 0.6 +     // 宽高比权重
+    sizeSimilarity * 0.4        // 尺寸相似度权重
+  );
+  
+  // 5. 应用非线性变换使结果更合理
+  const finalSimilarity = Math.pow(shapeSimilarity, 0.8);
+  
+  // 记录详细的计算过程
+  console.log(`Shape similarity calculation:
+    Ratio Similarity: ${ratioSimilarity.toFixed(4)}
+    Area Similarity: ${areaSimilarity.toFixed(4)}
+    Dimension Similarity: ${dimensionSimilarity.toFixed(4)}
+    Orientation Match: ${orientationMatch}
+    Size Similarity: ${sizeSimilarity.toFixed(4)}
+    Final Shape Similarity: ${finalSimilarity.toFixed(4)}
+  `);
+  
+  return finalSimilarity;
 }
 
 // 添加获取图片预览的 IPC 处理器
