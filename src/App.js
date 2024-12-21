@@ -87,68 +87,114 @@ function App() {
   };
 
   async function searchSimilarImages(file) {
-    let results = [];
-    const filePath = file.path || file.name; // Use file path or name as needed
-    if (window.electron) {
-      results = directoryStructure.filter(fileEntry => {
-        return fileEntry.path.includes(filePath);
-      });
-    } else {
-      results = directoryStructure.filter(fileEntry => 
-        fileEntry.name.includes(filePath)
-      );
+    if (!file || typeof file === 'object' && !file.name) {
+      setStatus('无效的文件');
+      return;
     }
-    
-    // Resolve all promises before setting the search results
-    const updatedResults = await Promise.all(results.map(async (fileEntry) => {
-      const size = await getFileSize(fileEntry.path);
-      const dimensions = await getImageDimensions(fileEntry.path);
-      const preview = await getImagePreview(file); // Pass the File object here
-      return {
-        path: fileEntry.path,
-        name: fileEntry.name,
-        size: size,
-        dimensions: dimensions,
-        similarity: calculateSimilarity(fileEntry.name, filePath),
-        preview: preview
-      };
-    }));
 
-    setSearchResults(updatedResults);
-    setStatus(`Found ${updatedResults.length} similar images`);
+    let results = [];
+    const filePath = file.webkitRelativePath || file.path || file.name;
+    
+    // 过滤图片文件
+    results = directoryStructure.filter(fileEntry => {
+      // 确保只搜索图片文件
+      const isImage = fileEntry.type.startsWith('image/') || 
+                     /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i.test(fileEntry.name);
+      
+      if (!isImage) return false;
+
+      if (window.electron) {
+        return fileEntry.path.includes(filePath);
+      } else {
+        // Web 环境下使用文件名进行匹配
+        return fileEntry.name.toLowerCase().includes(file.name.toLowerCase());
+      }
+    });
+    
+    try {
+      const updatedResults = await Promise.all(results.map(async (fileEntry) => {
+        try {
+          const size = await getFileSize(fileEntry.path);
+          const dimensions = await getImageDimensions(fileEntry.path);
+          const preview = await getImagePreview(file);
+          return {
+            path: fileEntry.path,
+            name: fileEntry.name,
+            size: size,
+            dimensions: dimensions,
+            similarity: calculateSimilarity(fileEntry.name, file.name),
+            preview: preview
+          };
+        } catch (error) {
+          console.error('Error processing file:', fileEntry.name, error);
+          return null;
+        }
+      }));
+
+      // 过滤掉处理失败的结果
+      const validResults = updatedResults.filter(result => result !== null);
+      setSearchResults(validResults);
+      setStatus(`找到 ${validResults.length} 个相似图片`);
+    } catch (error) {
+      console.error('Search error:', error);
+      setStatus('搜索过程中发生错误');
+    }
   }
 
   // Update getFileSize to use ipcRenderer
   const getFileSize = async (filePath) => {
     console.log(`Attempting to get file size for ${filePath}`);
-    const size = await window.electron.getFileSize(filePath);
-    console.log(`File size for ${filePath}: ${size}`);
-    return size; // Return the size received from the main process
+    if (window.electron) {
+      const size = await window.electron.getFileSize(filePath);
+      console.log(`File size for ${filePath}: ${size}`);
+      return size;
+    } else {
+      // Web 环境下，从 directoryStructure 中查找文件
+      const file = directoryStructure.find(f => f.path === filePath);
+      if (file && file.size) {
+        return `${(file.size / 1024).toFixed(2)} KB`;
+      }
+      return 'Unknown size';
+    }
   };
 
   // 辅助函数：获取图片尺寸
   const getImageDimensions = async (filePath) => {
     console.log(`Attempting to get image dimensions for ${filePath}`);
     if (window.electron) {
-      // Use ipcRenderer to request image dimensions from the main process
       const dimensions = await window.electron.getImageDimensions(filePath);
       console.log(`Image dimensions for ${filePath}: ${dimensions}`);
       return dimensions;
     } else {
-      // For non-electron environments, use the traditional approach
-      const img = new Image();
-      img.src = filePath; // 使用文件路径加载图片
-      await new Promise((resolve, reject) => {
-        img.onload = () => {
-          const dimensions = `${img.naturalWidth}x${img.naturalHeight}`; // 返回实际尺寸
-          console.log(`Image dimensions for ${filePath}: ${dimensions}`);
-          resolve(dimensions);
-        };
-        img.onerror = (error) => {
-          console.error(`Error loading image for dimensions: ${error}`);
-          reject(error);
-        };
-      });
+      try {
+        // Web 环境下从 directoryStructure 中获取文件
+        const file = directoryStructure.find(f => f.path === filePath);
+        if (!file) {
+          return 'Unknown dimensions';
+        }
+
+        // 创建临时的 URL 来加载图片
+        const url = URL.createObjectURL(new Blob([file], { type: file.type }));
+        const img = new Image();
+        
+        const dimensions = await new Promise((resolve, reject) => {
+          img.onload = () => {
+            const dims = `${img.naturalWidth}x${img.naturalHeight}`;
+            URL.revokeObjectURL(url);
+            resolve(dims);
+          };
+          img.onerror = () => {
+            URL.revokeObjectURL(url);
+            reject(new Error('Failed to load image'));
+          };
+          img.src = url;
+        });
+        
+        return dimensions;
+      } catch (error) {
+        console.error('Error getting dimensions:', error);
+        return 'Unknown dimensions';
+      }
     }
   };
 
@@ -209,15 +255,24 @@ function App() {
           /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i.test(file.name)
         );
         
+        // 保存更多文件信息
         const structure = files.map(file => ({
           name: file.name,
-          path: file.path
+          path: file.webkitRelativePath || file.path || file.name,
+          size: file.size,
+          type: file.type
         }));
         setDirectoryStructure(structure);
         
         // 获取选择的目录路径
         const firstFile = files[0];
-        const directoryPath = firstFile.path.substring(0, firstFile.path.lastIndexOf(firstFile.name));
+        let directoryPath;
+        
+        if (window.electron) {
+          directoryPath = firstFile.path.substring(0, firstFile.path.lastIndexOf(firstFile.name));
+        } else {
+          directoryPath = firstFile.webkitRelativePath.split('/')[0];
+        }
         
         // 更新搜索路径
         console.log('Selected directory:', directoryPath);
@@ -226,7 +281,6 @@ function App() {
         // 保存目录结构到 localStorage
         localStorage.setItem('directoryStructure', JSON.stringify(structure));
         
-        // 显示详细的状态信息
         setStatus(
           `已选择目录: ${directoryPath}\n` +
           `共发现 ${files.length} 个文件，其中含 ${imageFiles.length} 个图片文件`
@@ -332,9 +386,10 @@ function App() {
 
   const handleSearch = () => {
     if (searchFile) {
+      // 确保传入的是文件对象而不是事件对象
       searchSimilarImages(searchFile);
     } else {
-      setStatus('请先选择要搜索的片文件');
+      setStatus('请先选择要搜索的图片文件');
     }
   };
 
