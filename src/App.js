@@ -55,11 +55,25 @@ function App() {
   };
 
   const handleFile = (file) => {
+    // 先重置之前的状态
+    setPreviewUrl(null);
+    setSelectedResult(null);
+    setSearchResults([]);
+    
+    if (!file) {
+      setStatus('Error: No file selected');
+      return;
+    }
+
     if (file && file.type.startsWith('image/')) {
       setSelectedFile(file);
       const reader = new FileReader();
       reader.onload = () => {
         setPreviewUrl(reader.result);
+      };
+      reader.onerror = (error) => {
+        console.error('Error reading file:', error);
+        setStatus('Error: Failed to read file');
       };
       reader.readAsDataURL(file);
       setStatus('Searching for similar images...');
@@ -67,6 +81,8 @@ function App() {
       searchSimilarImages(file);
     } else {
       setStatus('Error: Please upload an image file');
+      setSelectedFile(null);
+      setSearchFile(null);
     }
   };
 
@@ -163,7 +179,7 @@ function App() {
     setSelectedResult(null);
     setSearchResults([]);
     setStatus('');
-    // 不清除 searchPath 和 directoryStructure
+    setSearchFile(null);
   };
 
   const rebuildCache = () => {
@@ -318,7 +334,7 @@ function App() {
     if (searchFile) {
       searchSimilarImages(searchFile);
     } else {
-      setStatus('请先选择要搜索的���片文件');
+      setStatus('请先选择要搜索的片文件');
     }
   };
 
