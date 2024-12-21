@@ -168,20 +168,29 @@ function App() {
       }
     } else {
       try {
-        const file = directoryStructure.find(f => f.path === filePath);
-        if (!file) return 'Unknown dimensions';
+        // Web 环境下从 directoryStructure 中获取文件
+        const fileEntry = directoryStructure.find(f => f.path === filePath);
+        if (!fileEntry) return 'Unknown dimensions';
+
+        // 创建一个新的 File 对象
+        const file = new File([fileEntry.blob || ''], fileEntry.name, {
+          type: fileEntry.type
+        });
         
         return new Promise((resolve) => {
           const img = new Image();
           img.onload = () => {
             resolve(`${img.naturalWidth}x${img.naturalHeight}`);
+            URL.revokeObjectURL(img.src); // 清理 URL
           };
           img.onerror = () => {
             resolve('Unknown dimensions');
+            URL.revokeObjectURL(img.src); // 清理 URL
           };
           img.src = URL.createObjectURL(file);
         });
       } catch (error) {
+        console.error('Error getting dimensions:', error);
         return 'Unknown dimensions';
       }
     }
@@ -195,12 +204,20 @@ function App() {
   };
 
   // 辅助函数：获取图片预览
-  const getImagePreview = (file) => {
+  const getImagePreview = async (file) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result);
       reader.onerror = reject;
-      reader.readAsDataURL(file);
+      
+      if (file instanceof File) {
+        reader.readAsDataURL(file);
+      } else if (file.blob) {
+        // 如果是我们存储的带 blob 的对象
+        reader.readAsDataURL(file.blob);
+      } else {
+        reject(new Error('Invalid file object'));
+      }
     });
   };
 
@@ -235,7 +252,7 @@ function App() {
     input.webkitdirectory = true;
     input.multiple = true;
 
-    input.onchange = (e) => {
+    input.onchange = async (e) => {
       const files = Array.from(e.target.files);
       if (files.length > 0) {
         // 过滤出图片文件
@@ -244,13 +261,23 @@ function App() {
           /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i.test(file.name)
         );
         
-        // 根据环境保存不同的文件信息
-        const structure = files.map(file => ({
-          name: file.name,
-          path: window.electron ? file.path : (file.webkitRelativePath || file.name),
-          size: file.size,
-          type: file.type
+        // 为每个文件创建 blob
+        const structure = await Promise.all(files.map(async file => {
+          let blob = null;
+          if (!window.electron) {
+            // 在 Web 环境中，我们需要保存文件的 blob
+            blob = file.slice();
+          }
+          
+          return {
+            name: file.name,
+            path: window.electron ? file.path : (file.webkitRelativePath || file.name),
+            size: file.size,
+            type: file.type,
+            blob: blob // 只在 Web 环境中使用
+          };
         }));
+
         setDirectoryStructure(structure);
         
         // 获取选择的目录路径
@@ -382,7 +409,7 @@ function App() {
     }
   };
 
-  // 组件卸载时清理定时器
+  // 组件卸载��清理定时器
   useEffect(() => {
     return () => {
       if (similarityTimer) {
