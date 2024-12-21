@@ -5,7 +5,7 @@ import { FaUpload, FaFolder, FaImage, FaSearch, FaCog } from 'react-icons/fa';
 function App() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
-  const [similarity, setSimilarity] = useState(0.9999);
+  const [similarity, setSimilarity] = useState(0.50);
   const [searchResults, setSearchResults] = useState([]);
   const [selectedResult, setSelectedResult] = useState(null);
   const [searchPath, setSearchPath] = useState('');
@@ -24,7 +24,7 @@ function App() {
   useEffect(() => {
     const savedSettings = JSON.parse(localStorage.getItem('appSettings')) || {};
     setSearchPath(savedSettings.searchPath || '');
-    setSimilarity(savedSettings.similarity || 0.9999);
+    setSimilarity(savedSettings.similarity || 0.50);
     setExcludePaths(savedSettings.excludePaths || '');
     setIncludePaths(savedSettings.includePaths || '');
     // 加载保存的目录结构
@@ -95,50 +95,83 @@ function App() {
     let results = [];
     const filePath = window.electron ? file.path : (file.webkitRelativePath || file.name);
     
+    // 过滤图片文件
     results = directoryStructure.filter(fileEntry => {
-      // 确保只搜索图片文件
       const isImage = fileEntry.type.startsWith('image/') || 
                      /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i.test(fileEntry.name);
-      
-      if (!isImage) return false;
-
-      if (window.electron) {
-        // Electron 环境下使用完整路径匹配
-        return fileEntry.path.toLowerCase().includes(file.name.toLowerCase());
-      } else {
-        // Web 环境下使用文件名匹配
-        return fileEntry.name.toLowerCase().includes(file.name.toLowerCase());
-      }
+      return isImage;
     });
-    
+
     try {
+      setStatus('正在计算图片相似度...');
+      
       const updatedResults = await Promise.all(results.map(async (fileEntry) => {
         try {
           const size = await getFileSize(fileEntry.path);
           const dimensions = await getImageDimensions(fileEntry.path);
-          const preview = await getImagePreview(file);
-          return {
-            path: fileEntry.path,
-            name: fileEntry.name,
-            size: size,
-            dimensions: dimensions,
-            similarity: calculateSimilarity(fileEntry.name, file.name),
-            preview: preview
-          };
+          let preview;
+          try {
+            preview = await getImagePreview(fileEntry);
+          } catch (error) {
+            console.error('Preview generation error:', error);
+            preview = ''; // 使用空字符串或默认图片URL
+          }
+          
+          let similarityScore = 0;
+          if (window.electron) {
+            // 在 Electron 环境中计算实际相似度
+            similarityScore = await window.electron.calculateImageSimilarity(
+              filePath,
+              fileEntry.path
+            );
+          } else {
+            // Web 环境使用简单的文件名比较
+            similarityScore = calculateSimpleSimilarity(file.name, fileEntry.name);
+          }
+
+          // 只返回相似度高于阈值的结果
+          if (similarityScore >= similarity) {
+            return {
+              path: fileEntry.path,
+              name: fileEntry.name,
+              size: size,
+              dimensions: dimensions,
+              similarity: similarityScore.toFixed(2),
+              preview: preview
+            };
+          }
+          return null;
         } catch (error) {
           console.error('Error processing file:', fileEntry.name, error);
           return null;
         }
       }));
 
-      // 过滤掉处理失败的结果
-      const validResults = updatedResults.filter(result => result !== null);
+      // 过滤掉空结果并按相似度排序
+      const validResults = updatedResults
+        .filter(result => result !== null)
+        .sort((a, b) => parseFloat(b.similarity) - parseFloat(a.similarity));
+
       setSearchResults(validResults);
       setStatus(`找到 ${validResults.length} 个相似图片`);
     } catch (error) {
       console.error('Search error:', error);
       setStatus('搜索过程中发生错误');
     }
+  }
+
+  // Web环境下的简单相似度计算
+  function calculateSimpleSimilarity(fileName1, fileName2) {
+    const name1 = fileName1.toLowerCase();
+    const name2 = fileName2.toLowerCase();
+    const maxLength = Math.max(name1.length, name2.length);
+    let matches = 0;
+    
+    for (let i = 0; i < Math.min(name1.length, name2.length); i++) {
+      if (name1[i] === name2[i]) matches++;
+    }
+    
+    return matches / maxLength;
   }
 
   // Update getFileSize to use ipcRenderer
@@ -199,26 +232,41 @@ function App() {
   // 辅助函数：计算相似度
   const calculateSimilarity = (fileName1, fileName2) => {
     // 这里可以实现相似度计算的逻辑
-    // 例如，简单的字符串比较或更复杂的算法
+    // ���如，简单的字符串比较或更复杂的算法
     return (fileName1 === fileName2) ? '1.00' : '0.90'; // 示例返回值
   };
 
   // 辅助函数：获取图片预览
   const getImagePreview = async (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = reject;
-      
+    try {
       if (file instanceof File) {
-        reader.readAsDataURL(file);
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = (error) => {
+            console.error('Error reading file:', error);
+            reject(error);
+          };
+          reader.readAsDataURL(file);
+        });
       } else if (file.blob) {
-        // 如果是我们存储的带 blob 的对象
-        reader.readAsDataURL(file.blob);
+        // Web 环境中的 blob 对象
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file.blob);
+        });
+      } else if (window.electron && file.path) {
+        // Electron 环境中的文件路径
+        return await window.electron.getImagePreview(file.path);
       } else {
-        reject(new Error('Invalid file object'));
+        throw new Error('Unsupported file format');
       }
-    });
+    } catch (error) {
+      console.error('Error in getImagePreview:', error);
+      throw error;
+    }
   };
 
   const handleDragOver = (e) => {
@@ -314,9 +362,11 @@ function App() {
 
   const handleSimilarityChange = (e) => {
     const value = e.target.value;
-    if (value >= 0.5 && value <= 0.9999) {
-      setSimilarity(value);
-      setStatus(`调整相似度为: ${Number(value).toFixed(4)}`);
+    if (value >= 0 && value <= 1) {
+      // 将值四舍五入到2位小数
+      const roundedValue = Math.round(value * 100) / 100;
+      setSimilarity(roundedValue);
+      setStatus(`调整相似度为: ${roundedValue.toFixed(2)}`);
       
       // 清除之前的定时器
       if (similarityTimer) {
@@ -329,7 +379,7 @@ function App() {
           setStatus('开始搜索...');
           searchSimilarImages(searchFile);
         }
-      }, 500); // 500ms 后触发搜索
+      }, 500);
       
       setSimilarityTimer(timer);
     }
@@ -409,7 +459,7 @@ function App() {
     }
   };
 
-  // 组件卸载��清理定时器
+  // 组件卸载清理定时器
   useEffect(() => {
     return () => {
       if (similarityTimer) {
@@ -472,7 +522,7 @@ function App() {
     console.error(`Error during ${operation}:`, error);
     const message = window.electron 
       ? `操作失败: ${error.message}`
-      : '操作失败，请检查浏览器控制台';
+      : '��作失败，请检查浏览器控制台';
     setStatus(message);
   };
 
@@ -588,13 +638,13 @@ function App() {
                   <label>Similarity:</label>
                   <input
                     type="range"
-                    min="0.5"
-                    max="0.9999"
-                    step="0.0001"
+                    min="0.00"
+                    max="1.00"
+                    step="0.01"
                     value={similarity}
                     onChange={handleSimilarityChange}
                   />
-                  <span>{Number(similarity).toFixed(4)}</span>
+                  <span>{Number(similarity).toFixed(2)}</span>
                 </div>
                 <div className="buttons">
                   <button 

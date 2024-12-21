@@ -32,6 +32,23 @@ contextBridge.exposeInMainWorld('electron', {
       ipcRenderer.send('get-image-dimensions', filePath);
     });
   },
+  calculateImageSimilarity: async (sourcePath, targetPath) => {
+    try {
+      return await ipcRenderer.invoke('calculate-similarity', sourcePath, targetPath);
+    } catch (error) {
+      console.error('Error calculating similarity:', error);
+      throw error;
+    }
+  },
+  getImagePreview: async (filePath) => {
+    try {
+      const result = await ipcRenderer.invoke('get-image-preview', filePath);
+      return result;
+    } catch (error) {
+      console.error('Error getting image preview:', error);
+      throw error;
+    }
+  }
 });
 window.addEventListener('DOMContentLoaded', () => {
   const replaceText = (selector, text) => {
