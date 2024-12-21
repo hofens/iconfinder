@@ -18,6 +18,7 @@ function App() {
   const [similarityTimer, setSimilarityTimer] = useState(null);
   const [colorWeight, setColorWeight] = useState(0.7);
   const [shapeWeight, setShapeWeight] = useState(0.3);
+  const [weightPreset, setWeightPreset] = useState('color');
 
   // Ensure ipcRenderer is available
 
@@ -592,11 +593,19 @@ function App() {
     };
   };
 
-  // 修改颜色权重的处理函数
-  const handleColorWeightChange = (e) => {
-    const value = Number(e.target.value);
-    setColorWeight(value);
-    const newShapeWeight = Math.round((1 - value) * 100) / 100;
+  // 首先定义权重预设值
+  const WEIGHT_PRESETS = {
+    'color': { label: '颜色优先', colorWeight: 0.8, shapeWeight: 0.2 },
+    'shape': { label: '形状优先', colorWeight: 0.2, shapeWeight: 0.8 },
+    'balanced': { label: '平衡模式', colorWeight: 0.5, shapeWeight: 0.5 }
+  };
+
+  // 添加处理权重预设变化的函数
+  const handleWeightPresetChange = (e) => {
+    const preset = e.target.value;
+    setWeightPreset(preset);
+    const { colorWeight: newColorWeight, shapeWeight: newShapeWeight } = WEIGHT_PRESETS[preset];
+    setColorWeight(newColorWeight);
     setShapeWeight(newShapeWeight);
 
     // 清除之前的定时器
@@ -608,7 +617,6 @@ function App() {
     const timer = setTimeout(() => {
       if (searchFile) {
         setStatus('正在重新计算相似度...');
-        // 强制重新搜索，不使用缓存的结果
         searchSimilarImages(searchFile, true);
       }
     }, 500);
@@ -720,20 +728,18 @@ function App() {
                   </div>
 
                   <div className="control-item">
-                    <div className="weight-slider">
-                      <div className="weight-control">
-                        <span className="weight-value">Color: {Number(colorWeight).toFixed(2)}</span>
-                        <input
-                          type="range"
-                          min="0.00"
-                          max="1.00"
-                          step="0.01"
-                          value={colorWeight}
-                          onChange={handleColorWeightChange}
-                        />
-                        <span className="weight-value">Shape: {Number(shapeWeight).toFixed(2)}</span>
-                      </div>
-                    </div>
+                    <label>Search Mode:</label>
+                    <select 
+                      value={weightPreset}
+                      onChange={handleWeightPresetChange}
+                      className="weight-select"
+                    >
+                      {Object.entries(WEIGHT_PRESETS).map(([key, { label }]) => (
+                        <option key={key} value={key}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   <div className="buttons">

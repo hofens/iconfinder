@@ -181,7 +181,6 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-width: 200px;
 }
 
 .control-item label {
@@ -617,4 +616,40 @@ button:disabled:hover {
 .upload-area.disabled:hover {
   border-color: #cbd5e0;
   background-color: #f8fafc;
+}
+
+/* 下拉框样式 */
+.weight-select {
+  padding: 6px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background-color: white;
+  color: #2d3748;
+  font-size: 14px;
+  cursor: pointer;
+  min-width: 120px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.weight-select:hover {
+  border-color: #3182ce;
+}
+
+.weight-select:focus {
+  border-color: #3182ce;
+  box-shadow: 0 0 0 2px rgba(49,130,206,0.2);
+}
+
+/* 调整控制项布局 */
+.control-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.control-item label {
+  font-size: 14px;
+  color: #2d3748;
+  white-space: nowrap;
 }
