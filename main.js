@@ -3,6 +3,10 @@ const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
 
+function normalizePath(filePath) {
+  return path.normalize(filePath).replace(/\\/g, path.sep);
+}
+
 function createWindow() {
   console.log(`__dirname ${__dirname}`);
   const win = new BrowserWindow({
@@ -12,16 +16,36 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       enableRemoteModule: false,
+      nodeIntegration: false,
     },
   });
 
-  win.loadURL('http://localhost:3000');
+  if (process.env.NODE_ENV === 'development') {
+    win.loadURL('http://localhost:3000');
+    win.webContents.openDevTools();
+    
+    // 添加加载事件监听
+    win.webContents.on('did-start-loading', () => {
+      console.log('开始加载页面...');
+    });
+    
+    win.webContents.on('did-finish-load', () => {
+      console.log('页面加载完成');
+    });
+    
+    win.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+      console.log('页面加载失败', errorCode, errorDescription);
+      win.loadURL('http://localhost:3000');
+    });
+  } else {
+    win.loadFile(path.join(__dirname, 'build', 'index.html'));
+  }
 }
 
 app.whenReady().then(createWindow);
 
 ipcMain.on('get-file-size', (event, filePath) => {
-  const absolutePath = path.resolve(filePath);
+  const absolutePath = normalizePath(path.resolve(filePath));
   console.log(`get-file-size Checking file size for: ${absolutePath}`);
   fs.stat(absolutePath, (err, stats) => {
     if (err) {
@@ -34,7 +58,7 @@ ipcMain.on('get-file-size', (event, filePath) => {
 });
 
 ipcMain.on('get-image-dimensions', (event, filePath) => {
-  const absolutePath = path.resolve(filePath);
+  const absolutePath = normalizePath(path.resolve(filePath));
   console.log(`get-image-dimensions Checking image dimensions for: ${absolutePath}`);
   
   // 使用图像库（如 sharp）来获取图像尺寸
