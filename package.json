@@ -51,17 +51,24 @@
     "appId": "com.hofens.iconfinder",
     "mac": {
       "category": "public.app-category.developer-tools",
-      "target": ["dmg", "zip"]
+      "target": ["dmg", "zip"],
+      "icon": "public/logo512.png"
     },
     "win": {
-      "target": ["nsis", "portable"]
+      "target": ["nsis", "portable"],
+      "icon": "public/logo512.png"
+    },
+    "linux": {
+      "target": ["AppImage"],
+      "icon": "public/logo512.png"
     },
     "files": [
       "build/**/*",
       "node_modules/**/*",
       "package.json",
       "main.js",
-      "preload.js"
+      "preload.js",
+      "public/logo512.png"
     ]
   },
   "devDependencies": {
