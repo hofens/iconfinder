@@ -357,7 +357,7 @@ function App() {
         // 保存目录结构到 localStorage
         localStorage.setItem('directoryStructure', JSON.stringify(structure));
         
-        // 只在 Electron 环境下初始化缓存
+        // 只在 Electron 环境下初始化���存
         if (window.electron) {
           try {
             setStatus('正在缓存目录中的图片信息...');
@@ -369,7 +369,7 @@ function App() {
           }
         } else {
           // Web 环境下的提示
-          setStatus(`已选择目录: ${directoryPath}\n共发现 ${files.length} 个文件，其中含 ${imageFiles.length} 个图片文件`);
+          setStatus(`已选择目录: ${directoryPath}\n共发现 ${files.length} ��文件，其中含 ${imageFiles.length} 个图片文件`);
         }
       } else {
         setStatus('未选择任何目录');
@@ -671,7 +671,9 @@ function App() {
           <div className="container">
             <div className="section directory-section">
               <div className="section-header">
-                <FaFolder /> Search Directory
+                <div className="header-left">
+                  <FaFolder /> Search Directory
+                </div>
               </div>
               <div className="directory-input">
                 <input 
@@ -679,7 +681,6 @@ function App() {
                   value={searchPath}
                   onChange={(e) => {
                     setSearchPath(e.target.value);
-                    // 当输入框被清空时，清除目录结构
                     if (!e.target.value.trim()) {
                       setDirectoryStructure([]);
                       localStorage.removeItem('directoryStructure');
@@ -688,6 +689,15 @@ function App() {
                   placeholder="Enter directory path to search"
                 />
                 <button className="browse-btn" onClick={handleBrowseDirectory}>Browse</button>
+                <button onClick={handleSearch} disabled={!searchPath.trim()}>
+                  <FaSearch /> Research
+                </button>
+                <button onClick={resetPreview} disabled={!searchPath.trim()}>
+                  Reset
+                </button>
+                <button onClick={rebuildCache} disabled={!searchPath.trim()}>
+                  Rebuild Cache
+                </button>
                 <button className="settings-btn" onClick={() => setShowSettings(true)}>
                   <FaCog /> Settings
                 </button>
@@ -751,9 +761,14 @@ function App() {
                   )}
                 </div>
               </div>
-              
-              <div className="controls">
-                <div className="control-group">
+            </div>
+
+            <div className="section results-section">
+              <div className="section-header">
+                <div className="header-left">
+                  <FaImage /> Search Results
+                </div>
+                <div className="header-controls">
                   <div className="control-item">
                     <label>Similarity:</label>
                     <input
@@ -768,7 +783,7 @@ function App() {
                   </div>
 
                   <div className="control-item">
-                    <label>Search Mode:</label>
+                    <label>Sort Mode:</label>
                     <select 
                       value={weightPreset}
                       onChange={handleWeightPresetChange}
@@ -781,25 +796,7 @@ function App() {
                       ))}
                     </select>
                   </div>
-
-                  <div className="buttons">
-                    <button onClick={handleSearch} disabled={!searchPath.trim()}>
-                      <FaSearch /> Search
-                    </button>
-                    <button onClick={resetPreview} disabled={!searchPath.trim()}>
-                      Reset
-                    </button>
-                    <button onClick={rebuildCache} disabled={!searchPath.trim()}>
-                      Rebuild Cache
-                    </button>
-                  </div>
                 </div>
-              </div>
-            </div>
-
-            <div className="section results-section">
-              <div className="section-header">
-                <FaImage /> Search Results
               </div>
               <div className="results-container">
                 <div className="results-grid">
