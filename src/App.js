@@ -16,9 +16,6 @@ function App() {
   const [searchFile, setSearchFile] = useState(null);
   const [directoryStructure, setDirectoryStructure] = useState([]);
   const [similarityTimer, setSimilarityTimer] = useState(null);
-  const [colorWeight, setColorWeight] = useState(0.7);
-  const [shapeWeight, setShapeWeight] = useState(0.3);
-  const [weightPreset, setWeightPreset] = useState('color');
 
   // Ensure ipcRenderer is available
 
@@ -30,8 +27,6 @@ function App() {
     setSimilarity(savedSettings.similarity || 0.50);
     setExcludePaths(savedSettings.excludePaths || '');
     setIncludePaths(savedSettings.includePaths || '');
-    setColorWeight(savedSettings.colorWeight || 0.7);
-    setShapeWeight(savedSettings.shapeWeight || 0.3);
     // 加载保存的目录结构
     const savedStructure = JSON.parse(localStorage.getItem('directoryStructure')) || [];
     setDirectoryStructure(savedStructure);
@@ -44,11 +39,9 @@ function App() {
       similarity,
       excludePaths,
       includePaths,
-      colorWeight,
-      shapeWeight,
     };
     localStorage.setItem('appSettings', JSON.stringify(settings));
-  }, [searchPath, similarity, excludePaths, includePaths, colorWeight, shapeWeight]);
+  }, [searchPath, similarity, excludePaths, includePaths]);
 
   const handleDrop = (e) => {
     e.preventDefault();
@@ -112,14 +105,12 @@ function App() {
     try {
       setStatus('正在计算图片相似度...');
       
-      // 清除之前的结果（如果是强制重新计算）
       if (forceRecalculate) {
         setSearchResults([]);
       }
 
       const updatedResults = await Promise.all(results.map(async (fileEntry) => {
         try {
-          // 直接使用缓存的信息
           let size = fileEntry.size;
           let dimensions = fileEntry.dimensions;
           let preview = fileEntry.preview;
@@ -130,47 +121,43 @@ function App() {
               filePath,
               fileEntry.path,
               { 
-                colorWeight, 
-                shapeWeight,
-                threshold: similarity 
+                colorWeight: 0.7,
+                shapeWeight: 0.3,
               }
             );
             
-            const normalizedColorWeight = colorWeight / (colorWeight + shapeWeight);
-            const normalizedShapeWeight = shapeWeight / (colorWeight + shapeWeight);
-            
             similarityResult = (
-              result.colorSimilarity * normalizedColorWeight + 
-              result.shapeSimilarity * normalizedShapeWeight
+              result.colorSimilarity * 0.7 + 
+              result.shapeSimilarity * 0.3
             );
           } else {
             similarityResult = calculateSimpleSimilarity(file.name, fileEntry.name);
           }
 
-          if (similarityResult >= similarity) {
-            return {
-              path: fileEntry.path,
-              name: fileEntry.name,
-              size,
-              dimensions,
-              similarity: similarityResult.toFixed(4),
-              preview: preview
-            };
-          }
-          return null;
+          return {
+            path: fileEntry.path,
+            name: fileEntry.name,
+            size,
+            dimensions,
+            similarity: similarityResult.toFixed(4),
+            preview: preview
+          };
         } catch (error) {
           console.error('Error processing file:', fileEntry.name, error);
           return null;
         }
       }));
 
-      // 过滤掉空结果并按相似度排序
       const validResults = updatedResults
         .filter(result => result !== null)
         .sort((a, b) => parseFloat(b.similarity) - parseFloat(a.similarity));
 
-      setSearchResults(validResults);
-      setStatus(`找到 ${validResults.length} 个相似图片`);
+      const filteredResults = validResults.filter(
+        result => parseFloat(result.similarity) >= similarity
+      );
+
+      setSearchResults(filteredResults);
+      setStatus(`找到 ${filteredResults.length} 个相似图片`);
     } catch (error) {
       console.error('Search error:', error);
       setStatus('搜索过程中发生错误');
@@ -298,7 +285,7 @@ function App() {
 
   const rebuildCache = () => {
     setStatus('Rebuilding cache...');
-    // TODO: 实现缓存重建逻辑
+    // TODO: 实现缓���重建逻辑
   };
 
   const handleDoubleClick = (fileName) => {
@@ -345,7 +332,7 @@ function App() {
               fileInfo.size = `${(file.size / 1024).toFixed(2)} KB`;
               fileInfo.blob = file.slice();
               
-              // 获取图片尺寸
+              // 取图片尺寸
               fileInfo.dimensions = await new Promise((resolve) => {
                 const img = new Image();
                 img.onload = () => {
@@ -406,17 +393,15 @@ function App() {
   const handleSimilarityChange = (e) => {
     const value = e.target.value;
     if (value >= 0 && value <= 1) {
-      // 将值四舍五入到2位数
-      const roundedValue = Math.round(value * 100) / 100;
+      // 将值四舍五入到4位小数
+      const roundedValue = Math.round(value * 10000) / 10000;
       setSimilarity(roundedValue);
-      setStatus(`调整相似度为: ${roundedValue.toFixed(2)}`);
+      setStatus(`调整相似度为: ${roundedValue.toFixed(4)}`);
       
-      // 清除之前的定时器
       if (similarityTimer) {
         clearTimeout(similarityTimer);
       }
       
-      // 设置新的定时器
       const timer = setTimeout(() => {
         if (searchFile) {
           setStatus('开始搜索...');
@@ -431,61 +416,25 @@ function App() {
   const settingsModal = showSettings && (
     <div className="modal-overlay">
       <div className="modal">
-        <h2>Search Settings</h2>
+        <h2>搜索设置</h2>
         <div className="modal-content">
           <div className="setting-group">
-            <label>Include Paths (Regular Expression):</label>
+            <label>包含路径 (正则表达式):</label>
             <input
               type="text"
               value={includePaths}
               onChange={(e) => setIncludePaths(e.target.value)}
-              placeholder="e.g., \.png$|\.jpg$"
+              placeholder="例如: \.png$|\.jpg$"
             />
           </div>
           <div className="setting-group">
-            <label>Exclude Paths (Regular Expression):</label>
+            <label>排除路径 (正则表达式):</label>
             <input
               type="text"
               value={excludePaths}
               onChange={(e) => setExcludePaths(e.target.value)}
-              placeholder="e.g., node_modules|\.git"
+              placeholder="例如: node_modules|\.git"
             />
-          </div>
-          <div className="setting-group">
-            <label>Color Weight (0.00-1.00):</label>
-            <div className="weight-control">
-              <input
-                type="range"
-                min="0.00"
-                max="1.00"
-                step="0.01"
-                value={colorWeight}
-                onChange={(e) => {
-                  const value = Number(e.target.value);
-                  setColorWeight(value);
-                  setShapeWeight(Math.round((1 - value) * 100) / 100);
-                }}
-              />
-              <span>{colorWeight.toFixed(2)}</span>
-            </div>
-          </div>
-          <div className="setting-group">
-            <label>Shape Weight (0.00-1.00):</label>
-            <div className="weight-control">
-              <input
-                type="range"
-                min="0.00"
-                max="1.00"
-                step="0.01"
-                value={shapeWeight}
-                onChange={(e) => {
-                  const value = Number(e.target.value);
-                  setShapeWeight(value);
-                  setColorWeight(Math.round((1 - value) * 100) / 100);
-                }}
-              />
-              <span>{shapeWeight.toFixed(2)}</span>
-            </div>
           </div>
         </div>
         <div className="modal-actions">
@@ -497,21 +446,19 @@ function App() {
                 similarity,
                 excludePaths,
                 includePaths,
-                colorWeight,
-                shapeWeight,
               };
               localStorage.setItem('appSettings', JSON.stringify(settings));
               setShowSettings(false);
             }}
           >
-            Confirm
+            确认
           </button>
           <div style={{ margin: '0 5px' }} />
           <button 
             style={{ backgroundColor: '#f44336', color: 'white' }}
             onClick={() => setShowSettings(false)}
           >
-            Cancel
+            取消
           </button>
         </div>
       </div>
@@ -533,7 +480,7 @@ function App() {
 
   const handleSearch = () => {
     if (searchFile) {
-      // 确保传���的是文件对象而不是事对象
+      // 确保传入的是文件对象而不是事对象
       searchSimilarImages(searchFile);
     } else {
       setStatus('请先选择要搜索的图片文件');
@@ -626,36 +573,27 @@ function App() {
     };
   };
 
-  // 首先定义权重预设值
-  const WEIGHT_PRESETS = {
-    'color': { label: '颜色优先', colorWeight: 0.8, shapeWeight: 0.2 },
-    'shape': { label: '形状优先', colorWeight: 0.2, shapeWeight: 0.8 },
-    'balanced': { label: '平衡模式', colorWeight: 0.5, shapeWeight: 0.5 }
-  };
-
-  // 添加处理权重预设化的函数
-  const handleWeightPresetChange = (e) => {
-    const preset = e.target.value;
-    setWeightPreset(preset);
-    const { colorWeight: newColorWeight, shapeWeight: newShapeWeight } = WEIGHT_PRESETS[preset];
-    setColorWeight(newColorWeight);
-    setShapeWeight(newShapeWeight);
-
-    // 清除之前的定时器
-    if (similarityTimer) {
-      clearTimeout(similarityTimer);
-    }
-    
-    // 设置新的定时器，延迟执行搜索
-    const timer = setTimeout(() => {
-      if (searchFile) {
-        setStatus('正在重新计算相似度...');
-        searchSimilarImages(searchFile, true);
-      }
-    }, 500);
-    
-    setSimilarityTimer(timer);
-  };
+  const resultsHeader = (
+    <div className="section-header">
+      <div className="header-left">
+        <FaImage /> 搜索结果
+      </div>
+      <div className="header-controls">
+        <div className="control-item">
+          <label>相似度:</label>
+          <input
+            type="range"
+            min="0.0000"
+            max="1.0000"
+            step="0.0001"
+            value={similarity}
+            onChange={handleSimilarityChange}
+          />
+          <span>{Number(similarity).toFixed(4)}</span>
+        </div>
+      </div>
+    </div>
+  );
 
   const handleResultClick = async (index) => {
     setSelectedResult(index);
@@ -670,14 +608,14 @@ function App() {
           searchFile.path,
           result.path,
           { 
-            colorWeight, 
-            shapeWeight,
+            colorWeight: 0.7,  // 使用固定权重
+            shapeWeight: 0.3,  // 使用固定权重
             threshold: similarity 
           }
         );
         
-        const normalizedColorWeight = colorWeight / (colorWeight + shapeWeight);
-        const normalizedShapeWeight = shapeWeight / (colorWeight + shapeWeight);
+        const normalizedColorWeight = 0.7 / (0.7 + 0.3);
+        const normalizedShapeWeight = 0.3 / (0.7 + 0.3);
         
         const totalSimilarity = (
           similarityResult.colorSimilarity * normalizedColorWeight + 
@@ -801,40 +739,7 @@ function App() {
             </div>
 
             <div className="section results-section">
-              <div className="section-header">
-                <div className="header-left">
-                  <FaImage /> Search Results
-                </div>
-                <div className="header-controls">
-                  <div className="control-item">
-                    <label>Similarity:</label>
-                    <input
-                      type="range"
-                      min="0.00"
-                      max="1.00"
-                      step="0.01"
-                      value={similarity}
-                      onChange={handleSimilarityChange}
-                    />
-                    <span>{Number(similarity).toFixed(2)}</span>
-                  </div>
-
-                  <div className="control-item">
-                    <label>Sort Mode:</label>
-                    <select 
-                      value={weightPreset}
-                      onChange={handleWeightPresetChange}
-                      className="weight-select"
-                    >
-                      {Object.entries(WEIGHT_PRESETS).map(([key, { label }]) => (
-                        <option key={key} value={key}>
-                          {label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
+              {resultsHeader}
               <div className="results-container">
                 <div className="results-grid">
                   {searchResults.length > 0 ? (

@@ -42,7 +42,7 @@ body {
   margin-bottom: 15px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   padding: 8px 0;
 }
 
@@ -56,6 +56,7 @@ body {
   display: flex;
   align-items: center;
   gap: 24px;
+  margin-left: 20px;
 }
 
 /* 调整控制项样式 */
@@ -723,4 +724,9 @@ button {
 
 .settings-btn:hover {
   background-color: #4a5568;
+}
+
+/* 移除权重控制相关的样式 */
+.weight-control {
+  display: none;
 }
