@@ -745,3 +745,26 @@ button {
   height: 16px;
   cursor: pointer;
 }
+
+/* 添加目录选择器样式 */
+.directory-select {
+  padding: 4px 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  background-color: white;
+  color: #2d3748;
+  font-size: 14px;
+  min-width: 140px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.directory-select:hover {
+  border-color: #3182ce;
+}
+
+.directory-select:focus {
+  outline: none;
+  border-color: #3182ce;
+  box-shadow: 0 0 0 2px rgba(49,130,206,0.2);
+}

@@ -17,6 +17,8 @@ function App() {
   const [directoryStructure, setDirectoryStructure] = useState([]);
   const [similarityTimer, setSimilarityTimer] = useState(null);
   const [showDetailedInfo, setShowDetailedInfo] = useState(false);
+  const [resultDirFilter, setResultDirFilter] = useState('');
+  const [availableDirs, setAvailableDirs] = useState([]);
 
   // Ensure ipcRenderer is available
 
@@ -58,7 +60,7 @@ function App() {
   };
 
   const handleFile = (file) => {
-    // 先重置之前的状态
+    // ���重置之前的状态
     setPreviewUrl(null);
     setSelectedResult(null);
     setSearchResults([]);
@@ -160,6 +162,15 @@ function App() {
       );
 
       setSearchResults(filteredResults);
+      
+      // 更新可用目录列表
+      const dirs = new Set();
+      filteredResults.forEach(result => {
+        const dir = getRelativePath(result.path).split('/').slice(0, -1).join('/');
+        if (dir) dirs.add(dir);
+      });
+      setAvailableDirs(Array.from(dirs).sort());
+      
       setStatus(`找到 ${filteredResults.length} 个相似图片`);
     } catch (error) {
       console.error('Search error:', error);
@@ -501,7 +512,7 @@ function App() {
     }
   };
 
-  // 组件卸载清理定��器
+  // 组件卸载清理定器
   useEffect(() => {
     return () => {
       if (similarityTimer) {
@@ -605,6 +616,21 @@ function App() {
           />
           <span>{Number(similarity).toFixed(4)}</span>
         </div>
+        {availableDirs.length > 0 && (
+          <div className="control-item">
+            <label>目录:</label>
+            <select
+              value={resultDirFilter}
+              onChange={(e) => setResultDirFilter(e.target.value)}
+              className="directory-select"
+            >
+              <option value="">全部</option>
+              {availableDirs.map(dir => (
+                <option key={dir} value={dir}>{dir || '根目录'}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -775,21 +801,27 @@ function App() {
               <div className="results-container">
                 <div className="results-grid">
                   {searchResults.length > 0 ? (
-                    searchResults.map((result, index) => (
-                      <div 
-                        key={index}
-                        className={`result-item ${selectedResult === index ? 'selected' : ''}`}
-                        onClick={() => handleResultClick(index)}
-                        onDoubleClick={() => handleDoubleClick(result.name)}
-                      >
-                        <div className="result-image">
-                          <img src={result.preview} alt={result.name} />
+                    searchResults
+                      .filter(result => {
+                        if (!resultDirFilter) return true;
+                        const dir = getRelativePath(result.path).split('/').slice(0, -1).join('/');
+                        return dir === resultDirFilter;
+                      })
+                      .map((result, index) => (
+                        <div 
+                          key={index}
+                          className={`result-item ${selectedResult === index ? 'selected' : ''}`}
+                          onClick={() => handleResultClick(index)}
+                          onDoubleClick={() => handleDoubleClick(result.name)}
+                        >
+                          <div className="result-image">
+                            <img src={result.preview} alt={result.name} />
+                          </div>
+                          <div className="result-info">
+                            <div className="result-name" title={result.name}>{result.name}</div>
+                          </div>
                         </div>
-                        <div className="result-info">
-                          <div className="result-name" title={result.name}>{result.name}</div>
-                        </div>
-                      </div>
-                    ))
+                      ))
                   ) : (
                     <div className="no-results">
                       <FaImage size={40} />
