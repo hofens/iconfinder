@@ -211,6 +211,35 @@ async function calculateSimilarityWithCache(sourcePath, targetPath, weights) {
   return result;
 }
 
+// 添加 rebuildCache 函数
+async function rebuildCache(directoryPath) {
+  try {
+    console.log('Rebuilding cache for directory:', directoryPath);
+    
+    // 清除内存中的缓存
+    imageCache.clear();
+    similarityCache.clear();
+
+    // 删除缓存文件
+    const cacheFilePath = path.join(directoryPath, CACHE_FILE_NAME);
+    try {
+      await fs.unlink(cacheFilePath);
+      console.log('Existing cache file deleted');
+    } catch (error) {
+      // 如果文件不存在，忽略错误
+      if (error.code !== 'ENOENT') {
+        console.error('Error deleting cache file:', error);
+      }
+    }
+
+    // 重新初始化缓存
+    return await initializeImageCache(directoryPath);
+  } catch (error) {
+    console.error('Error rebuilding cache:', error);
+    throw error;
+  }
+}
+
 // 添加新的 IPC 处理器
 ipcMain.handle('initialize-image-cache', async (event, directoryPath) => {
   return await initializeImageCache(directoryPath);
@@ -266,7 +295,7 @@ ipcMain.handle('calculate-similarity', async (event, sourcePath, targetPath, wei
   }
 });
 
-// ��加获取图片特征的函数
+// 添加获取图片特征的函数
 async function getImageFeatures(imagePath) {
   try {
     const image = sharp(imagePath);
@@ -398,7 +427,7 @@ function calculateShapeSimilarity(ratio1, ratio2, dims1, dims2) {
   const areaDiff = Math.abs(logArea1 - logArea2);
   const areaSimilarity = Math.exp(-areaDiff / 10);
   
-  // 2.2 边���比例相似度
+  // 2.2 边比例相似度
   const widthRatio = Math.min(width1, width2) / Math.max(width1, width2);
   const heightRatio = Math.min(height1, height2) / Math.max(height1, height2);
   const dimensionSimilarity = (widthRatio + heightRatio) / 2;
@@ -450,7 +479,7 @@ ipcMain.handle('get-image-preview', async (event, filePath) => {
   }
 });
 
-// 辅��函数：根据文件扩展名获取 MIME 类型
+// 辅助函数：根据文件扩展名获取 MIME 类型
 function getMimeType(filePath) {
   const ext = path.extname(filePath).toLowerCase();
   const mimeTypes = {

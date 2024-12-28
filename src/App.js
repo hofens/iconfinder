@@ -297,9 +297,32 @@ function App() {
     setSearchFile(null);
   };
 
-  const rebuildCache = () => {
-    setStatus('Rebuilding cache...');
-    // TODO: 实现缓存重建逻辑
+  const rebuildCache = async () => {
+    if (!searchPath.trim()) {
+      setStatus('请先选择搜索目录');
+      return;
+    }
+
+    try {
+      setStatus('正在重建缓存...');
+      
+      if (window.electron) {
+        await window.electron.rebuildCache(searchPath);
+        setStatus('缓存重建完成');
+        
+        // 重置所有面板状态
+        setSelectedFile(null);
+        setPreviewUrl(null);
+        setSelectedResult(null);
+        setSearchResults([]);
+        setSearchFile(null);
+        setAvailableDirs([]);
+        setResultDirFilter('');
+      }
+    } catch (error) {
+      console.error('Error rebuilding cache:', error);
+      setStatus('缓存重建失败: ' + error.message);
+    }
   };
 
   const handleDoubleClick = (fileName) => {
