@@ -1,77 +1,95 @@
-# IconFinder
+# Icon Finder
 
-[简体中文](./README.md) | English
+An intelligent icon/image search tool based on image similarity, supporting smart matching of shape, color, and rounded corner features.
 
-A similarity-based icon finder that helps you quickly locate similar or duplicate icons in your project.
+## Key Features
 
-![Screenshot](./screenshots/screenshot.png)
+### 1. Intelligent Search
+- Color similarity matching
+- Shape similarity matching (including size, aspect ratio, orientation)
+- Rounded corner feature detection
+- Adjustable similarity threshold for precise result control
 
-## Features
+### 2. File Support
+- Supports major image formats: JPG, JPEG, PNG, GIF, BMP, WebP, SVG
+- Drag and drop upload
+- File preview support
 
-- 🔍 Image Search: Find similar images in your project by uploading a reference image
-- 🎯 Similarity Control: Precise similarity threshold setting from 0.5000 to 0.9999
-- 📁 Directory Management: Configure search and exclude directories
-- 🖼️ Image Preview: Preview original and search result images
-- 💾 Image Cache: Automatic cache building and updating for faster searches
-- 🔄 Real-time Feedback: Display search and operation status
-- 📋 Quick Copy: Double-click to copy file names
+### 3. Directory Management
+- Search directory selection
+- Directory filter display
+- Include/Exclude directory rules (using regular expressions)
+- Cross-platform path handling
 
-## Getting Started
+### 4. Caching Mechanism
+- Automatic image feature caching
+- Persistent storage support
+- Cache rebuilding support
+- Search performance optimization
 
-### Prerequisites
-
-- Node.js >= 14.0.0
-- npm >= 6.14.0
-
-### Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/hofens/iconfinder.git
-
-# Enter the project directory
-cd iconfinder
-
-# Install dependencies
-npm install
-```
-
-### Development
-
-```bash
-# Start the development server
-npm start
-```
-
-### Build
-
-```bash
-# Build the production version
-npm run build
-```
+### 5. Search Results
+- Real-time preview
+- Detailed file information display
+- Detailed similarity information display (color similarity, shape similarity)
+- Directory-based result filtering
+- Double-click to copy filename
 
 ## Usage
 
-1. Select the search directory: Click the "Browse" button to select the directory to search
-2. Upload the image: Drag and drop the image or click to select a file
-3. Adjust the similarity: Use the slider to set the desired similarity threshold
-4. View the results: Check the similar images in the result list
-5. Preview details: Click on a result item to view details
-6. Copy file names: Double-click on a result item to copy the file name
+### Basic Operations
+1. Click "Browse" to select the search directory
+2. Drag and drop or select the target image
+3. Adjust similarity threshold (0-1) to control matching precision
+4. View search results, click for detailed preview
 
-## Configuration
+### Advanced Settings
+Click "Settings" for advanced configuration:
+- Include Paths: Use regex to specify paths to include, e.g., `\.png$|\.jpg$`
+- Exclude Paths: Use regex to specify paths to exclude, e.g., `thumbnails|temp`
+- Detailed Info: Enable to view detailed similarity data
 
-### Search Settings
+### Cache Management
+- Cache is automatically built on first directory scan
+- Click "Rebuild Cache" to rebuild directory cache
+- Cache file is stored as `.image-cache.json` in the directory
 
-Click the "Settings" button to configure:
+### Result Filtering
+- Use directory dropdown to filter results by directory
+- Adjust similarity threshold for real-time result filtering
+- Reset button to clear current search state
 
-- Include paths: Use regular expressions to set the paths to include
-- Exclude paths: Use regular expressions to set the paths to exclude
+## Technical Features
+- Efficient image processing using Sharp
+- SIMD optimization support
+- Cross-platform support (Windows, macOS, Linux)
+- Built with Electron + React
 
-## Contribution
+## Installation and Running
 
-Welcome to submit Pull Requests or create Issues.
+### Development Environment
+```bash
+# Install dependencies
+npm install
 
-## Open Source License
+# Start development server
+npm start
+```
 
-[MIT License](./LICENSE) 
+### Production Environment
+```bash
+# Build application
+npm run build
+
+# Package application
+npm run build:electron
+
+# Platform-specific packaging
+npm run build:mac    # macOS
+npm run build:win    # Windows
+```
+
+## System Requirements
+- Node.js 14.0 or higher
+- Windows 10/11, macOS 10.13+, or Linux
+- 2GB+ available memory
+- 500MB+ available disk space 
