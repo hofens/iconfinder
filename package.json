@@ -23,9 +23,9 @@
     "start:react": "cross-env BROWSER=none react-scripts start",
     "start:electron": "wait-on tcp:3000 && cross-env NODE_ENV=development electron .",
     "build": "react-scripts build",
-    "build:electron": "electron-builder -mw",
-    "build:mac": "electron-builder --mac",
-    "build:win": "electron-builder --win",
+    "build:electron": "npm run build && electron-builder -mw",
+    "build:mac": "npm run build && electron-builder --mac",
+    "build:win": "npm run build && electron-builder --win",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
@@ -100,15 +100,22 @@
       "preload.js",
       "public/logo512.png"
     ],
+    "extraMetadata": {
+      "main": "main.js"
+    },
+    "asar": true,
     "extraResources": [
       {
         "from": "build",
-        "to": "build",
+        "to": "app/build",
         "filter": [
           "**/*"
         ]
       }
-    ]
+    ],
+    "electronDownload": {
+      "mirror": "https://npmmirror.com/mirrors/electron/"
+    }
   },
   "eslintConfig": {
     "extends": [
@@ -132,7 +139,7 @@
     "concurrently": "^8.2.0",
     "cross-env": "^7.0.3",
     "electron": "25.9.8",
-    "electron-builder": "^24.6.0",
+    "electron-builder": "24.6.0",
     "wait-on": "^7.0.1"
   }
 }
