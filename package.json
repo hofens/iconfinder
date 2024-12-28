@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "main": "main.js",
+  "homepage": "./",
   "repository": {
     "type": "git",
     "url": "https://github.com/hofens/iconfinder.git"
@@ -97,25 +98,12 @@
       "node_modules/**/*",
       "package.json",
       "main.js",
-      "preload.js",
-      "public/logo512.png"
+      "preload.js"
     ],
     "extraMetadata": {
       "main": "main.js"
     },
-    "asar": true,
-    "extraResources": [
-      {
-        "from": "build",
-        "to": "app/build",
-        "filter": [
-          "**/*"
-        ]
-      }
-    ],
-    "electronDownload": {
-      "mirror": "https://npmmirror.com/mirrors/electron/"
-    }
+    "asar": true
   },
   "eslintConfig": {
     "extends": [

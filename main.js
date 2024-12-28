@@ -57,7 +57,12 @@ function createWindow() {
       win.loadURL('http://localhost:3000');
     });
   } else {
-    win.loadFile(path.join(__dirname, 'build', 'index.html'));
+    // 生产环境加载打包后的文件
+    const indexPath = path.join(__dirname, './build/index.html');
+    console.log('Loading production file:', indexPath);
+    win.loadFile(indexPath).catch(err => {
+      console.error('Failed to load index.html:', err);
+    });
   }
 }
 
@@ -533,7 +538,7 @@ function calculateShapeSimilarity(ratio1, ratio2, dims1, dims2, corners1, corner
 ipcMain.handle('get-image-preview', async (event, filePath) => {
   try {
     const data = await fs.readFile(filePath);
-    // 获取文件的 MIME 类型
+    // 获取文件的 MIME ���型
     const mimeType = getMimeType(filePath);
     return `data:${mimeType};base64,${data.toString('base64')}`;
   } catch (error) {
