@@ -501,7 +501,7 @@ function App() {
     }
   };
 
-  // 组件卸载清理定时器
+  // 组件卸载清理定��器
   useEffect(() => {
     return () => {
       if (similarityTimer) {
@@ -653,6 +653,24 @@ function App() {
     }
   };
 
+  // 添加一个处理路径的辅助函数
+  const getRelativePath = (fullPath) => {
+    if (!searchPath || !fullPath) return fullPath;
+    
+    // 统一路径分隔符
+    const normalizedFullPath = fullPath.replace(/\\/g, '/');
+    const normalizedSearchPath = searchPath.replace(/\\/g, '/');
+    
+    // 如果路径以搜索目录开头，则去除该前缀
+    if (normalizedFullPath.startsWith(normalizedSearchPath)) {
+      let relativePath = normalizedFullPath.slice(normalizedSearchPath.length);
+      // 去除开头的斜杠
+      return relativePath.replace(/^[/\\]+/, '');
+    }
+    
+    return fullPath;
+  };
+
   return (
     <div className="App">
       <div className="container" style={{ display: 'flex' }}>
@@ -791,7 +809,7 @@ function App() {
                       </div>
                       <div className="details">
                         <h3>文件详情</h3>
-                        <p data-label="路径:">{searchResults[selectedResult].path}</p>
+                        <p data-label="路径:">{getRelativePath(searchResults[selectedResult].path)}</p>
                         <p data-label="名称:">{searchResults[selectedResult].name}</p>
                         <p data-label="大小:">{searchResults[selectedResult].size}</p>
                         <p data-label="尺寸:">{searchResults[selectedResult].dimensions}</p>
