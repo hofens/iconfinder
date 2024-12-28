@@ -59,39 +59,90 @@ app.whenReady().then(createWindow);
 const imageCache = new Map();
 const similarityCache = new Map();
 
-// 添加缓存初始化函数
+// 添加缓存文件相关的常量
+const CACHE_FILE_NAME = '.image-cache.json';
+const CACHE_VERSION = '1.0';
+
+// 修改缓存初始化函数
 async function initializeImageCache(directoryPath) {
   try {
-    console.log('Initializing image cache for directory:', directoryPath);
+    console.log('Initializing image cache...');
     imageCache.clear();
     similarityCache.clear();
 
-    // 递归获取目录下所有图片文件
+    // 尝试加载现有缓存
+    const cacheFilePath = path.join(directoryPath, CACHE_FILE_NAME);
+    let existingCache = null;
+    try {
+      const cacheData = await fs.readFile(cacheFilePath, 'utf8');
+      existingCache = JSON.parse(cacheData);
+      console.log('Found existing cache file');
+    } catch (error) {
+      console.log('No existing cache found or cache invalid');
+    }
+
+    // 获取所有图片文件
     const files = await getAllImageFiles(directoryPath);
     console.log(`Found ${files.length} image files`);
 
-    // 并行处理所有图片文件
-    await Promise.all(files.map(async (filePath) => {
+    // 处理每个文件
+    for (const filePath of files) {
       try {
-        const metadata = await sharp(filePath).metadata();
         const stats = await fs.stat(filePath);
+        const lastModified = stats.mtime.getTime();
+
+        // 检查缓存是否有效
+        if (existingCache && 
+            existingCache.files[filePath] && 
+            existingCache.files[filePath].lastModified === lastModified &&
+            existingCache.version === CACHE_VERSION) {
+          // 使用缓存数据
+          imageCache.set(filePath, existingCache.files[filePath]);
+          console.log(`Using cached data for ${path.basename(filePath)}`);
+          continue;
+        }
+
+        // 计算新的特征
+        console.log(`Processing ${path.basename(filePath)}...`);
+        const metadata = await sharp(filePath).metadata();
         const features = await getImageFeatures(filePath);
 
+        // 保存到缓存
         imageCache.set(filePath, {
           dimensions: `${metadata.width}x${metadata.height}`,
           size: `${(stats.size / 1024).toFixed(2)} KB`,
           features: features,
-          lastModified: stats.mtime.getTime()
+          lastModified: lastModified
         });
       } catch (error) {
-        console.error(`Error caching file ${filePath}:`, error);
+        console.error(`Error processing file ${filePath}:`, error);
       }
-    }));
+    }
 
-    console.log('Image cache initialization completed');
+    // 保存缓存到文件
+    await saveCacheToFile(directoryPath);
+    console.log('Cache initialization completed');
     return true;
   } catch (error) {
-    console.error('Error initializing image cache:', error);
+    console.error('Error initializing cache:', error);
+    throw error;
+  }
+}
+
+// 添加缓存保存函数
+async function saveCacheToFile(directoryPath) {
+  const cacheFilePath = path.join(directoryPath, CACHE_FILE_NAME);
+  const cacheData = {
+    version: CACHE_VERSION,
+    timestamp: Date.now(),
+    files: Object.fromEntries(imageCache)
+  };
+
+  try {
+    await fs.writeFile(cacheFilePath, JSON.stringify(cacheData, null, 2));
+    console.log('Cache saved to file');
+  } catch (error) {
+    console.error('Error saving cache:', error);
     throw error;
   }
 }
@@ -125,38 +176,28 @@ async function calculateSimilarityWithCache(sourcePath, targetPath, weights) {
   
   // 检查缓存是否存在且有效
   if (similarityCache.has(cacheKey)) {
+    console.log('Using cached similarity result');
     return similarityCache.get(cacheKey);
   }
 
   // 获取或计算源图片特征
-  let sourceFeatures;
-  if (imageCache.has(sourcePath)) {
-    sourceFeatures = imageCache.get(sourcePath).features;
-  } else {
+  let sourceFeatures = imageCache.get(sourcePath)?.features;
+  if (!sourceFeatures) {
+    console.log('Computing features for source image');
     sourceFeatures = await getImageFeatures(sourcePath);
   }
 
   // 获取或计算目标图片特征
-  let targetFeatures;
-  if (imageCache.has(targetPath)) {
-    targetFeatures = imageCache.get(targetPath).features;
-  } else {
+  let targetFeatures = imageCache.get(targetPath)?.features;
+  if (!targetFeatures) {
+    console.log('Computing features for target image');
     targetFeatures = await getImageFeatures(targetPath);
   }
 
-  // 计算相似度并获取详细信息
-  const {
-    totalSimilarity,
-    colorSimilarity,
-    shapeSimilarity
-  } = calculateSimilarityFromFeatures(sourceFeatures, targetFeatures, weights);
+  // 计算相似度
+  const result = calculateSimilarityFromFeatures(sourceFeatures, targetFeatures, weights);
   
   // 缓存计算结果
-  const result = {
-    totalSimilarity,
-    colorSimilarity,
-    shapeSimilarity
-  };
   similarityCache.set(cacheKey, result);
   
   return result;
@@ -326,7 +367,7 @@ function calculateHistogramSimilarity(hist1, hist2) {
 
 // 修改形状相似度计算函数
 function calculateShapeSimilarity(ratio1, ratio2, dims1, dims2) {
-  // 完全相同的图片返回1
+  // 完全相同的��片返回1
   if (ratio1 === ratio2 && 
       dims1[0] === dims2[0] && 
       dims1[1] === dims2[1]) {
@@ -362,7 +403,7 @@ function calculateShapeSimilarity(ratio1, ratio2, dims1, dims2) {
   // 3. 计算最终的形状相似度
   const sizeSimilarity = (
     areaSimilarity * 0.4 +      // 面积相似度权重
-    dimensionSimilarity * 0.4 + // 边长比例权重
+    dimensionSimilarity * 0.4 + // ���长比例权重
     orientationMatch * 0.2      // 方向一致性权重
   );
   
