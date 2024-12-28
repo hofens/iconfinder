@@ -16,6 +16,7 @@ function App() {
   const [searchFile, setSearchFile] = useState(null);
   const [directoryStructure, setDirectoryStructure] = useState([]);
   const [similarityTimer, setSimilarityTimer] = useState(null);
+  const [showDetailedInfo, setShowDetailedInfo] = useState(false);
 
   // Ensure ipcRenderer is available
 
@@ -27,6 +28,7 @@ function App() {
     setSimilarity(savedSettings.similarity || 0.50);
     setExcludePaths(savedSettings.excludePaths || '');
     setIncludePaths(savedSettings.includePaths || '');
+    setShowDetailedInfo(savedSettings.showDetailedInfo || false);
     // 加载保存的目录结构
     const savedStructure = JSON.parse(localStorage.getItem('directoryStructure')) || [];
     setDirectoryStructure(savedStructure);
@@ -39,9 +41,10 @@ function App() {
       similarity,
       excludePaths,
       includePaths,
+      showDetailedInfo,
     };
     localStorage.setItem('appSettings', JSON.stringify(settings));
-  }, [searchPath, similarity, excludePaths, includePaths]);
+  }, [searchPath, similarity, excludePaths, includePaths, showDetailedInfo]);
 
   const handleDrop = (e) => {
     e.preventDefault();
@@ -285,7 +288,7 @@ function App() {
 
   const rebuildCache = () => {
     setStatus('Rebuilding cache...');
-    // TODO: 实现缓���重建逻辑
+    // TODO: 实现缓存重建逻辑
   };
 
   const handleDoubleClick = (fileName) => {
@@ -436,6 +439,16 @@ function App() {
               placeholder="例如: node_modules|\.git"
             />
           </div>
+          <div className="setting-group">
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={showDetailedInfo}
+                onChange={(e) => setShowDetailedInfo(e.target.checked)}
+              />
+              显示详细相似度信息
+            </label>
+          </div>
         </div>
         <div className="modal-actions">
           <button 
@@ -446,6 +459,7 @@ function App() {
                 similarity,
                 excludePaths,
                 includePaths,
+                showDetailedInfo,
               };
               localStorage.setItem('appSettings', JSON.stringify(settings));
               setShowSettings(false);
@@ -776,17 +790,17 @@ function App() {
                         />
                       </div>
                       <div className="details">
-                        <h3>File Details</h3>
-                        <p data-label="Path:">{searchResults[selectedResult].path}</p>
-                        <p data-label="Name:">{searchResults[selectedResult].name}</p>
-                        <p data-label="Size:">{searchResults[selectedResult].size}</p>
-                        <p data-label="Dimensions:">{searchResults[selectedResult].dimensions}</p>
-                        <p data-label="Total Similarity:">{searchResults[selectedResult].totalSimilarity || searchResults[selectedResult].similarity}</p>
-                        {searchResults[selectedResult].colorSimilarity && (
-                          <p data-label="Color Similarity:">{searchResults[selectedResult].colorSimilarity}</p>
-                        )}
-                        {searchResults[selectedResult].shapeSimilarity && (
-                          <p data-label="Shape Similarity:">{searchResults[selectedResult].shapeSimilarity}</p>
+                        <h3>文件详情</h3>
+                        <p data-label="路径:">{searchResults[selectedResult].path}</p>
+                        <p data-label="名称:">{searchResults[selectedResult].name}</p>
+                        <p data-label="大小:">{searchResults[selectedResult].size}</p>
+                        <p data-label="尺寸:">{searchResults[selectedResult].dimensions}</p>
+                        <p data-label="总相似度:">{searchResults[selectedResult].similarity}</p>
+                        {showDetailedInfo && (
+                          <>
+                            <p data-label="颜色相似度:">{searchResults[selectedResult].colorSimilarity}</p>
+                            <p data-label="形状相似度:">{searchResults[selectedResult].shapeSimilarity}</p>
+                          </>
                         )}
                       </div>
                     </div>
