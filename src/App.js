@@ -32,7 +32,7 @@ function App() {
     setIncludePaths(savedSettings.includePaths || '');
     setShowDetailedInfo(savedSettings.showDetailedInfo || false);
     // 加载保存的目录结构
-    const savedStructure = JSON.parse(localStorage.getItem('directoryStructure')) || [];
+    const savedStructure = loadDirectoryStructure();
     setDirectoryStructure(savedStructure);
   }, []);
 
@@ -252,7 +252,7 @@ function App() {
 
   // 辅助函数：计算相似度
   const calculateSimilarity = (fileName1, fileName2) => {
-    // 这里可以实现相似度计算的逻辑
+    // 这里可以实现相似度计��的逻辑
     // 如，简单的字符串比较或更复杂的算法
     return (fileName1 === fileName2) ? '1.00' : '0.90'; // 示例返回值
   };
@@ -464,6 +464,11 @@ function App() {
 
         setDirectoryStructure(structure);
         
+        // 尝试保存目录结构
+        if (!saveDirectoryStructure(structure)) {
+          setStatus('警告：目录结构过大，无法保存到本地存储。重启应用后需要重新扫描目录。');
+        }
+        
         // 获取选择的目录路径
         const firstFile = files[0];
         const directoryPath = window.electron 
@@ -473,15 +478,19 @@ function App() {
         // 更新搜索路径
         setSearchPath(directoryPath);
         
-        // 保存目录结构到 localStorage
-        localStorage.setItem('directoryStructure', JSON.stringify(structure));
-        
         setStatus(`目录扫描完成，共发现 ${files.length} 个文件，其中含 ${imageFiles.length} 个图片文件`);
       } else {
         setStatus('未选择任何目录');
         setSearchPath('');
         setDirectoryStructure([]);
-        localStorage.removeItem('directoryStructure');
+        // 清除所有分块存储
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key.startsWith('directoryStructure_chunk_')) {
+            localStorage.removeItem(key);
+          }
+        }
+        localStorage.removeItem('directoryStructure_chunks');
       }
     };
 
@@ -659,7 +668,7 @@ function App() {
     console.error(`Error during ${operation}:`, error);
     const message = window.electron 
       ? `操作失败: ${error.message}`
-      : '操作失败，请检查浏览器控制��';
+      : '操作失败，请检查浏览器控制台';
     setStatus(message);
   };
 
@@ -748,7 +757,7 @@ function App() {
         
         searchResults[index] = {
           ...result,
-          size: stats,  // 使用���时获取的文件大小
+          size: stats,  // 使用时获取的文件大小
           dimensions: dimensions,  // 使用实时获取的图片尺寸
           colorSimilarity: similarityResult.colorSimilarity.toFixed(4),
           shapeSimilarity: similarityResult.shapeSimilarity.toFixed(4),
@@ -779,6 +788,69 @@ function App() {
     }
     
     return fullPath;
+  };
+
+  // 添加一个存储处理的辅助函数
+  const saveDirectoryStructure = (structure) => {
+    try {
+      // 创建一个简化版的结构，只保存必要的信息
+      const simplifiedStructure = structure.map(item => ({
+        name: item.name,
+        path: item.path,
+        type: item.type,
+        size: item.size,
+        dimensions: item.dimensions
+      }));
+      
+      // 尝试分块存储
+      const chunkSize = 50; // 每块存储50个项目
+      const chunks = [];
+      
+      for (let i = 0; i < simplifiedStructure.length; i += chunkSize) {
+        chunks.push(simplifiedStructure.slice(i, i + chunkSize));
+      }
+      
+      // 清除旧的存储
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key.startsWith('directoryStructure_chunk_')) {
+          localStorage.removeItem(key);
+        }
+      }
+      
+      // 存储新的分块
+      chunks.forEach((chunk, index) => {
+        localStorage.setItem(`directoryStructure_chunk_${index}`, JSON.stringify(chunk));
+      });
+      
+      // 存储分块数量
+      localStorage.setItem('directoryStructure_chunks', chunks.length.toString());
+      
+      return true;
+    } catch (error) {
+      console.error('Error saving directory structure:', error);
+      return false;
+    }
+  };
+
+  // 添加一个加载处理的辅助函数
+  const loadDirectoryStructure = () => {
+    try {
+      const chunks = parseInt(localStorage.getItem('directoryStructure_chunks') || '0');
+      if (chunks === 0) return [];
+      
+      let structure = [];
+      for (let i = 0; i < chunks; i++) {
+        const chunk = localStorage.getItem(`directoryStructure_chunk_${i}`);
+        if (chunk) {
+          structure = structure.concat(JSON.parse(chunk));
+        }
+      }
+      return structure;
+    } catch (error) {
+      console.error('Error loading directory structure:', error);
+      return [];
+    }
   };
 
   return (
