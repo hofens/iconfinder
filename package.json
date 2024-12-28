@@ -38,11 +38,17 @@
       "target": [
         {
           "target": "dmg",
-          "arch": ["x64", "arm64"]
+          "arch": [
+            "x64",
+            "arm64"
+          ]
         },
         {
           "target": "zip",
-          "arch": ["x64", "arm64"]
+          "arch": [
+            "x64",
+            "arm64"
+          ]
         }
       ],
       "icon": "public/logo512.png",
@@ -70,11 +76,16 @@
       }
     },
     "win": {
-      "target": ["nsis", "portable"],
+      "target": [
+        "nsis",
+        "portable"
+      ],
       "icon": "public/logo512.png"
     },
     "linux": {
-      "target": ["AppImage"],
+      "target": [
+        "AppImage"
+      ],
       "icon": "public/logo512.png"
     },
     "directories": {
@@ -93,7 +104,9 @@
       {
         "from": "build",
         "to": "build",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       }
     ]
   },
@@ -119,7 +132,7 @@
     "concurrently": "^8.2.0",
     "cross-env": "^7.0.3",
     "electron": "25.9.8",
-    "electron-builder": "24.6.0",
+    "electron-builder": "^24.6.0",
     "wait-on": "^7.0.1"
   }
 }
