@@ -341,6 +341,15 @@ function App() {
     input.onchange = async (e) => {
       const files = Array.from(e.target.files);
       if (files.length > 0) {
+        // 重置所有面板状态
+        setSelectedFile(null);
+        setPreviewUrl(null);
+        setSelectedResult(null);
+        setSearchResults([]);
+        setSearchFile(null);
+        setAvailableDirs([]);
+        setResultDirFilter('');
+        
         setStatus('正在扫描目录...');
         
         // 过滤出图片文件
