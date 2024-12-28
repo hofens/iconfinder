@@ -308,32 +308,83 @@ async function getImageFeatures(imagePath) {
       .raw()
       .toBuffer();
 
-    // 计算颜色直方图，使用更多的颜色区间
+    // 计算颜色直方图
     const histogram = new Array(768).fill(0);
     let dominantColors = new Array(3).fill(0);
     let pixelCount = 0;
     
-    for (let i = 0; i < resizedImage.length; i += 3) {
-      const r = resizedImage[i];
-      const g = resizedImage[i + 1];
-      const b = resizedImage[i + 2];
+    // 添加圆角检测
+    const cornerPixels = {
+      topLeft: [],
+      topRight: [],
+      bottomLeft: [],
+      bottomRight: []
+    };
+    
+    const cornerSize = 16; // 检测区域大小
+    
+    for (let y = 0; y < 128; y++) {
+      for (let x = 0; x < 128; x++) {
+        const i = (y * 128 + x) * 3;
+        const r = resizedImage[i];
+        const g = resizedImage[i + 1];
+        const b = resizedImage[i + 2];
+        
+        // 更新直方图和主色调
+        histogram[r]++;
+        histogram[256 + g]++;
+        histogram[512 + b]++;
+        dominantColors[0] += r;
+        dominantColors[1] += g;
+        dominantColors[2] += b;
+        pixelCount++;
+        
+        // 检测四个角落的像素
+        if (x < cornerSize && y < cornerSize) {
+          // 左上角
+          cornerPixels.topLeft.push([r, g, b]);
+        } else if (x >= 128 - cornerSize && y < cornerSize) {
+          // 右上角
+          cornerPixels.topRight.push([r, g, b]);
+        } else if (x < cornerSize && y >= 128 - cornerSize) {
+          // 左下角
+          cornerPixels.bottomLeft.push([r, g, b]);
+        } else if (x >= 128 - cornerSize && y >= 128 - cornerSize) {
+          // 右下角
+          cornerPixels.bottomRight.push([r, g, b]);
+        }
+      }
+    }
+    
+    // 分析每个角落是否为圆角
+    const cornerFeatures = {};
+    for (const [corner, pixels] of Object.entries(cornerPixels)) {
+      // 计算角落像素的方差
+      const avgColor = pixels.reduce((acc, pixel) => [
+        acc[0] + pixel[0],
+        acc[1] + pixel[1],
+        acc[2] + pixel[2]
+      ], [0, 0, 0]).map(sum => sum / pixels.length);
       
-      histogram[r]++;
-      histogram[256 + g]++;
-      histogram[512 + b]++;
+      // 计算颜色变化的方差
+      const variance = pixels.reduce((acc, pixel) => {
+        const diff = Math.sqrt(
+          Math.pow(pixel[0] - avgColor[0], 2) +
+          Math.pow(pixel[1] - avgColor[1], 2) +
+          Math.pow(pixel[2] - avgColor[2], 2)
+        );
+        return acc + diff;
+      }, 0) / pixels.length;
       
-      // 累加颜色值以计算平均色
-      dominantColors[0] += r;
-      dominantColors[1] += g;
-      dominantColors[2] += b;
-      pixelCount++;
+      // 根据方差判断是否为圆角（方差大说明有明显的颜色变化，可能是圆角）
+      cornerFeatures[corner] = variance > 20;
     }
     
     // 计算平均色
     dominantColors = dominantColors.map(sum => Math.round(sum / pixelCount));
 
     // 归一化直方图
-    const sum = histogram.reduce((a, b) => a + b, 0) / 3; // 除以3因为我们有RGB三个通道
+    const sum = histogram.reduce((a, b) => a + b, 0) / 3;
     const normalizedHistogram = histogram.map(v => v / sum);
 
     return {
@@ -341,7 +392,8 @@ async function getImageFeatures(imagePath) {
       aspectRatio: metadata.width / metadata.height,
       histogram: normalizedHistogram,
       dominantColors,
-      originalSize: metadata.size
+      originalSize: metadata.size,
+      cornerFeatures  // 添加圆角特征
     };
   } catch (error) {
     console.error(`Error processing image ${imagePath}:`, error);
@@ -403,8 +455,8 @@ function calculateHistogramSimilarity(hist1, hist2) {
 }
 
 // 修改形状相似度计算函数
-function calculateShapeSimilarity(ratio1, ratio2, dims1, dims2) {
-  // 完全相同的片返回1
+function calculateShapeSimilarity(ratio1, ratio2, dims1, dims2, corners1, corners2) {
+  // 完全相同的图片返回1
   if (ratio1 === ratio2 && 
       dims1[0] === dims2[0] && 
       dims1[1] === dims2[1]) {
@@ -419,46 +471,57 @@ function calculateShapeSimilarity(ratio1, ratio2, dims1, dims2) {
   const [width1, height1] = dims1;
   const [width2, height2] = dims2;
   
-  // 2.1 面积相似度（使用对数尺度）
+  // 2.1 面积相似度（使用对数尺度，并降低其影响）
   const area1 = width1 * height1;
   const area2 = width2 * height2;
   const logArea1 = Math.log(area1);
   const logArea2 = Math.log(area2);
   const areaDiff = Math.abs(logArea1 - logArea2);
-  const areaSimilarity = Math.exp(-areaDiff / 10);
+  const areaSimilarity = Math.exp(-areaDiff / 20);
   
-  // 2.2 边比例相似度
+  // 2.2 边比例相似度（增加其权重）
   const widthRatio = Math.min(width1, width2) / Math.max(width1, width2);
   const heightRatio = Math.min(height1, height2) / Math.max(height1, height2);
-  const dimensionSimilarity = (widthRatio + heightRatio) / 2;
+  const dimensionSimilarity = Math.pow((widthRatio + heightRatio) / 2, 0.5);
   
-  // 2.3 方向一致性（判断是否都是横向或纵向）
+  // 2.3 方向一致性
   const isHorizontal1 = width1 > height1;
   const isHorizontal2 = width2 > height2;
-  const orientationMatch = isHorizontal1 === isHorizontal2 ? 1 : 0.8;
+  const orientationMatch = isHorizontal1 === isHorizontal2 ? 1 : 0.7;
   
-  // 3. 计算最终的形状相似度
+  // 2.4 圆角相似度（新增）
+  let cornerSimilarity = 0;
+  if (corners1 && corners2) {
+    const corners = ['topLeft', 'topRight', 'bottomLeft', 'bottomRight'];
+    const matchCount = corners.reduce((count, corner) => {
+      return count + (corners1[corner] === corners2[corner] ? 1 : 0);
+    }, 0);
+    cornerSimilarity = matchCount / 4;
+  }
+  
+  // 3. 计算最终的形状相似度（调整权重，加入圆角）
   const sizeSimilarity = (
-    areaSimilarity * 0.4 +      // 面积相似度权重
-    dimensionSimilarity * 0.4 + // 长比例权重
-    orientationMatch * 0.2      // 方向一致性权重
+    areaSimilarity * 0.15 +       // 降低面积相似度权重
+    dimensionSimilarity * 0.4 +   // 边比例权重
+    orientationMatch * 0.25 +     // 方向一致性权重
+    cornerSimilarity * 0.2        // 圆角相似度权重
   );
   
   // 4. 组合宽高比相似度和尺寸相似度
   const shapeSimilarity = (
-    ratioSimilarity * 0.6 +     // 宽高比权重
-    sizeSimilarity * 0.4        // 尺寸相似度权重
+    ratioSimilarity * 0.7 +
+    sizeSimilarity * 0.3
   );
   
-  // 5. 应用非线性变换使结果更合理
-  const finalSimilarity = Math.pow(shapeSimilarity, 0.8);
+  // 5. 应用非线性变换
+  const finalSimilarity = Math.pow(shapeSimilarity, 0.7);
   
-  // 记录详细的计算过程
   console.log(`Shape similarity calculation:
     Ratio Similarity: ${ratioSimilarity.toFixed(4)}
     Area Similarity: ${areaSimilarity.toFixed(4)}
     Dimension Similarity: ${dimensionSimilarity.toFixed(4)}
     Orientation Match: ${orientationMatch}
+    Corner Similarity: ${cornerSimilarity.toFixed(4)}
     Size Similarity: ${sizeSimilarity.toFixed(4)}
     Final Shape Similarity: ${finalSimilarity.toFixed(4)}
   `);
@@ -534,7 +597,9 @@ function calculateSimilarityFromFeatures(sourceFeatures, targetFeatures, weights
     sourceFeatures.aspectRatio,
     targetFeatures.aspectRatio,
     sourceFeatures.dimensions,
-    targetFeatures.dimensions
+    targetFeatures.dimensions,
+    sourceFeatures.cornerFeatures,
+    targetFeatures.cornerFeatures
   );
 
   // 使用非线性函数调整相似度权重
