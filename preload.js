@@ -56,6 +56,14 @@ contextBridge.exposeInMainWorld('electron', {
       console.error('Error initializing image cache:', error);
       throw error;
     }
+  },
+  rebuildCache: async (directoryPath) => {
+    try {
+      return await ipcRenderer.invoke('rebuild-cache', directoryPath);
+    } catch (error) {
+      console.error('Error rebuilding cache:', error);
+      throw error;
+    }
   }
 });
 window.addEventListener('DOMContentLoaded', () => {

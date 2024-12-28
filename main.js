@@ -250,6 +250,10 @@ ipcMain.handle('initialize-image-cache', async (event, directoryPath) => {
   return await initializeImageCache(directoryPath);
 });
 
+ipcMain.handle('rebuild-cache', async (event, directoryPath) => {
+  return await rebuildCache(directoryPath);
+});
+
 // 修改现有的文件大小和尺寸获取处理器以使用缓存
 ipcMain.on('get-file-size', async (event, filePath) => {
   const absolutePath = normalizePath(filePath);
@@ -538,7 +542,7 @@ function calculateShapeSimilarity(ratio1, ratio2, dims1, dims2, corners1, corner
 ipcMain.handle('get-image-preview', async (event, filePath) => {
   try {
     const data = await fs.readFile(filePath);
-    // 获取文件的 MIME ���型
+    // 获取文件的 MIME 类型
     const mimeType = getMimeType(filePath);
     return `data:${mimeType};base64,${data.toString('base64')}`;
   } catch (error) {
