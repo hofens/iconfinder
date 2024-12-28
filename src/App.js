@@ -82,8 +82,14 @@ function App() {
       };
       reader.readAsDataURL(file);
       setStatus('Searching for similar images...');
-      setSearchFile(file);
-      searchSimilarImages(file);
+      
+      // 先清空 searchFile，确保状态更新
+      setSearchFile(null);
+      // 使用 setTimeout 确保状态已更新后再设置新的 searchFile
+      setTimeout(() => {
+        setSearchFile(file);
+        searchSimilarImages(file);
+      }, 0);
     } else {
       setStatus('Error: Please upload an image file');
       setSelectedFile(null);
@@ -295,6 +301,11 @@ function App() {
     setSearchResults([]);
     setStatus('');
     setSearchFile(null);
+    // 清除文件选择器的值
+    const fileInput = document.getElementById('file-input');
+    if (fileInput) {
+      fileInput.value = '';
+    }
   };
 
   const rebuildCache = async () => {
@@ -318,6 +329,11 @@ function App() {
         setSearchFile(null);
         setAvailableDirs([]);
         setResultDirFilter('');
+        // 清除文件选择器的值
+        const fileInput = document.getElementById('file-input');
+        if (fileInput) {
+          fileInput.value = '';
+        }
       }
     } catch (error) {
       console.error('Error rebuilding cache:', error);
