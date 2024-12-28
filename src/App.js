@@ -368,11 +368,47 @@ function App() {
         
         setStatus('正在扫描目录...');
         
-        // 过滤出图片文件
-        const imageFiles = files.filter(file => 
-          file.type.startsWith('image/') || 
-          /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i.test(file.name)
-        );
+        // 创建包含和排除的正则表达式
+        let includeRegex = null;
+        let excludeRegex = null;
+        try {
+          if (includePaths.trim()) {
+            includeRegex = new RegExp(includePaths);
+          }
+          if (excludePaths.trim()) {
+            excludeRegex = new RegExp(excludePaths);
+          }
+        } catch (error) {
+          console.error('正则表达式错误:', error);
+          setStatus('正则表达式格式错误，请检查设置');
+          return;
+        }
+        
+        // 过滤出图片文件，并应用包含/排除规则
+        const imageFiles = files.filter(file => {
+          // 首先检查是否为图片文件
+          const isImage = file.type.startsWith('image/') || 
+                         /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i.test(file.name);
+          
+          if (!isImage) return false;
+          
+          // 获取相对路径
+          const relativePath = window.electron ? 
+            getRelativePath(file.path) : 
+            file.webkitRelativePath;
+            
+          // 检查排除规则
+          if (excludeRegex && excludeRegex.test(relativePath)) {
+            return false;
+          }
+          
+          // 检查包含规则
+          if (includeRegex && !includeRegex.test(relativePath)) {
+            return false;
+          }
+          
+          return true;
+        });
         
         // 为每个文件创建详细信息
         const structure = await Promise.all(imageFiles.map(async file => {
@@ -623,7 +659,7 @@ function App() {
     console.error(`Error during ${operation}:`, error);
     const message = window.electron 
       ? `操作失败: ${error.message}`
-      : '操作失败，请检查浏览器控制台';
+      : '操作失败，请检查浏览器控制��';
     setStatus(message);
   };
 
@@ -712,7 +748,7 @@ function App() {
         
         searchResults[index] = {
           ...result,
-          size: stats,  // 使用实时获取的文件大小
+          size: stats,  // 使用���时获取的文件大小
           dimensions: dimensions,  // 使用实时获取的图片尺寸
           colorSimilarity: similarityResult.colorSimilarity.toFixed(4),
           shapeSimilarity: similarityResult.shapeSimilarity.toFixed(4),
