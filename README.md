@@ -1,6 +1,7 @@
 # Icon Finder
 
 一个基于图像相似度搜索的图标/图片查找工具，支持形状、颜色和圆角特征的智能匹配。
+![Screenshot](./screenshots/screenshot.png)
 
 ## 主要特性
 
