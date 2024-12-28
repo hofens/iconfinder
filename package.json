@@ -29,6 +29,74 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
+  "build": {
+    "appId": "com.hofens.iconfinder",
+    "productName": "Icon Finder",
+    "copyright": "Copyright © 2024 hofens",
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["x64", "arm64"]
+        },
+        {
+          "target": "zip",
+          "arch": ["x64", "arm64"]
+        }
+      ],
+      "icon": "public/logo512.png",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
+    },
+    "dmg": {
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ],
+      "window": {
+        "width": 540,
+        "height": 400
+      }
+    },
+    "win": {
+      "target": ["nsis", "portable"],
+      "icon": "public/logo512.png"
+    },
+    "linux": {
+      "target": ["AppImage"],
+      "icon": "public/logo512.png"
+    },
+    "directories": {
+      "buildResources": "public",
+      "output": "dist"
+    },
+    "files": [
+      "build/**/*",
+      "node_modules/**/*",
+      "package.json",
+      "main.js",
+      "preload.js",
+      "public/logo512.png"
+    ],
+    "extraResources": [
+      {
+        "from": "build",
+        "to": "build",
+        "filter": ["**/*"]
+      }
+    ]
+  },
   "eslintConfig": {
     "extends": [
       "react-app",
@@ -45,30 +113,6 @@
       "last 1 chrome version",
       "last 1 firefox version",
       "last 1 safari version"
-    ]
-  },
-  "build": {
-    "appId": "com.hofens.iconfinder",
-    "mac": {
-      "category": "public.app-category.developer-tools",
-      "target": ["dmg", "zip"],
-      "icon": "public/logo512.png"
-    },
-    "win": {
-      "target": ["nsis", "portable"],
-      "icon": "public/logo512.png"
-    },
-    "linux": {
-      "target": ["AppImage"],
-      "icon": "public/logo512.png"
-    },
-    "files": [
-      "build/**/*",
-      "node_modules/**/*",
-      "package.json",
-      "main.js",
-      "preload.js",
-      "public/logo512.png"
     ]
   },
   "devDependencies": {
