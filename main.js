@@ -3,6 +3,14 @@ const fs = require('fs').promises;
 const path = require('path');
 const sharp = require('sharp');
 
+sharp.cache(false); // 禁用缓存以避免潜在的内存问题
+sharp.simd(true);   // 启用 SIMD 优化
+
+// 可选：添加错误处理
+sharp.queue.on('error', function(err) {
+  console.error('Sharp queue error:', err);
+});
+
 function normalizePath(filePath) {
   if (process.platform === 'win32') {
     // Windows
@@ -149,7 +157,7 @@ async function saveCacheToFile(directoryPath) {
 
 // 添加递归获取图片文件的函数
 async function getAllImageFiles(dirPath) {
-  const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'];
+  const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg'];
   let results = [];
 
   async function traverse(currentPath) {
@@ -258,7 +266,7 @@ ipcMain.handle('calculate-similarity', async (event, sourcePath, targetPath, wei
   }
 });
 
-// 添加获取图片特征的函数
+// ��加获取图片特征的函数
 async function getImageFeatures(imagePath) {
   try {
     const image = sharp(imagePath);
@@ -275,23 +283,23 @@ async function getImageFeatures(imagePath) {
     const histogram = new Array(768).fill(0);
     let dominantColors = new Array(3).fill(0);
     let pixelCount = 0;
-
+    
     for (let i = 0; i < resizedImage.length; i += 3) {
       const r = resizedImage[i];
       const g = resizedImage[i + 1];
       const b = resizedImage[i + 2];
-
+      
       histogram[r]++;
       histogram[256 + g]++;
       histogram[512 + b]++;
-
+      
       // 累加颜色值以计算平均色
       dominantColors[0] += r;
       dominantColors[1] += g;
       dominantColors[2] += b;
       pixelCount++;
     }
-
+    
     // 计算平均色
     dominantColors = dominantColors.map(sum => Math.round(sum / pixelCount));
 
@@ -307,7 +315,7 @@ async function getImageFeatures(imagePath) {
       originalSize: metadata.size
     };
   } catch (error) {
-    console.error('Error getting image features:', error);
+    console.error(`Error processing image ${imagePath}:`, error);
     throw error;
   }
 }
@@ -367,7 +375,7 @@ function calculateHistogramSimilarity(hist1, hist2) {
 
 // 修改形状相似度计算函数
 function calculateShapeSimilarity(ratio1, ratio2, dims1, dims2) {
-  // 完全相同的��片返回1
+  // 完全相同的片返回1
   if (ratio1 === ratio2 && 
       dims1[0] === dims2[0] && 
       dims1[1] === dims2[1]) {
@@ -390,7 +398,7 @@ function calculateShapeSimilarity(ratio1, ratio2, dims1, dims2) {
   const areaDiff = Math.abs(logArea1 - logArea2);
   const areaSimilarity = Math.exp(-areaDiff / 10);
   
-  // 2.2 边长比例相似度
+  // 2.2 边���比例相似度
   const widthRatio = Math.min(width1, width2) / Math.max(width1, width2);
   const heightRatio = Math.min(height1, height2) / Math.max(height1, height2);
   const dimensionSimilarity = (widthRatio + heightRatio) / 2;
@@ -403,7 +411,7 @@ function calculateShapeSimilarity(ratio1, ratio2, dims1, dims2) {
   // 3. 计算最终的形状相似度
   const sizeSimilarity = (
     areaSimilarity * 0.4 +      // 面积相似度权重
-    dimensionSimilarity * 0.4 + // ���长比例权重
+    dimensionSimilarity * 0.4 + // 长比例权重
     orientationMatch * 0.2      // 方向一致性权重
   );
   
@@ -442,7 +450,7 @@ ipcMain.handle('get-image-preview', async (event, filePath) => {
   }
 });
 
-// 辅助函数：根据文件扩展名获取 MIME 类型
+// 辅��函数：根据文件扩展名获取 MIME 类型
 function getMimeType(filePath) {
   const ext = path.extname(filePath).toLowerCase();
   const mimeTypes = {

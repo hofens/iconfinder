@@ -60,7 +60,7 @@ function App() {
   };
 
   const handleFile = (file) => {
-    // ���重置之前的状态
+    // 重置之前的状态
     setPreviewUrl(null);
     setSelectedResult(null);
     setSearchResults([]);
@@ -760,7 +760,7 @@ function App() {
                     <p>or</p>
                     <input
                       type="file"
-                      accept="image/*"
+                      accept="image/*,.jpg,.jpeg,.png,.gif,.bmp,.webp,.svg"
                       onChange={handleFileSelect}
                       id="file-input"
                       style={{display: 'none'}}
