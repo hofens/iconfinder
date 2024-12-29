@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
-import { FaUpload, FaFolder, FaImage, FaSearch, FaCog } from 'react-icons/fa';
+import { FaUpload, FaFolder, FaImage, FaCog } from 'react-icons/fa';
 
 function App() {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -202,40 +202,7 @@ function App() {
     return matches / maxLength;
   }
 
-  // 辅助函数：获取图片尺寸
-  const getImageDimensions = async (filePath) => {
-    if (window.electron) {
-      try {
-        const dimensions = await window.electron.getImageDimensions(filePath);
-        return dimensions;
-      } catch (error) {
-        console.error('Error getting dimensions:', error);
-        return 'Unknown dimensions';
-      }
-    } else {
-      try {
-        const fileEntry = directoryStructure.find(f => f.path === filePath);
-        if (!fileEntry || !fileEntry.blob) return 'Unknown dimensions';
-
-        return new Promise((resolve) => {
-          const img = new Image();
-          img.onload = () => {
-            resolve(`${img.naturalWidth}x${img.naturalHeight}`);
-            URL.revokeObjectURL(img.src);
-          };
-          img.onerror = () => {
-            resolve('Unknown dimensions');
-            URL.revokeObjectURL(img.src);
-          };
-          img.src = URL.createObjectURL(fileEntry.blob);
-        });
-      } catch (error) {
-        console.error('Error getting dimensions:', error);
-        return 'Unknown dimensions';
-      }
-    }
-  };
-
+  
   const handleDragOver = (e) => {
     e.preventDefault();
   };
@@ -582,38 +549,6 @@ function App() {
       }
     };
   }, [similarityTimer]);
-
-  // 修改路径处理函数，确保跨平台兼容
-  const getPathFromFile = (file) => {
-    if (window.electron) {
-      // Electron 环境 (Windows/Mac)
-      return file.path;
-    } else {
-      // Web 环境
-      return file.webkitRelativePath || file.name;
-    }
-  };
-
-  const getDirectoryPath = (file) => {
-    if (window.electron) {
-      // Electron 环境
-      if (process.platform === 'win32') {
-        // Windows
-        return file.path.substring(0, file.path.lastIndexOf('\\'));
-      } else {
-        // Mac/Linux
-        return file.path.substring(0, file.path.lastIndexOf('/'));
-      }
-    } else {
-      // Web 环境
-      return file.webkitRelativePath.split('/')[0];
-    }
-  };
-
-  const isImageFile = (file) => {
-    const imageTypes = /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i;
-    return file.type.startsWith('image/') || imageTypes.test(file.name);
-  };
 
   const resultsHeader = (
     <div className="section-header">

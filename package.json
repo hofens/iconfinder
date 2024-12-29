@@ -52,7 +52,7 @@
           ]
         }
       ],
-      "icon": "public/logo512.png",
+      "icon": "public/logo192.png",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
@@ -81,13 +81,13 @@
         "nsis",
         "portable"
       ],
-      "icon": "public/logo512.png"
+      "icon": "public/logo192.png"
     },
     "linux": {
       "target": [
         "AppImage"
       ],
-      "icon": "public/logo512.png"
+      "icon": "public/logo192.png"
     },
     "directories": {
       "buildResources": "public",

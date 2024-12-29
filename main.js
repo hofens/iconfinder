@@ -27,7 +27,7 @@ function createWindow() {
   const win = new BrowserWindow({
     width: 1200,
     height: 1000,
-    icon: path.join(__dirname, 'public/logo512.png'),
+    icon: path.join(__dirname, 'public/logo192.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -314,6 +314,9 @@ async function rebuildCache(directoryPath) {
   try {
     console.log('Rebuilding cache for directory:', directoryPath);
     
+    // 获取窗口的 webContents 用于发送进度
+    const sender = BrowserWindow.getFocusedWindow()?.webContents;
+    
     // 清除内存中的缓存
     imageCache.clear();
     similarityCache.clear();
@@ -330,10 +333,30 @@ async function rebuildCache(directoryPath) {
       }
     }
 
+    // 发送开始重建的消息
+    sender?.send('cache-init-progress', {
+      type: 'start',
+      message: '开始重建缓存...'
+    });
+
     // 重新初始化缓存
-    return await initializeImageCache(directoryPath);
+    const result = await initializeImageCache(directoryPath);
+
+    // 发送完成消息
+    sender?.send('cache-init-progress', {
+      type: 'complete',
+      message: '缓存重建完成'
+    });
+
+    return result;
   } catch (error) {
     console.error('Error rebuilding cache:', error);
+    // 发送错误消息
+    const sender = BrowserWindow.getFocusedWindow()?.webContents;
+    sender?.send('cache-init-progress', {
+      type: 'error',
+      error: error.message
+    });
     throw error;
   }
 }
@@ -341,6 +364,11 @@ async function rebuildCache(directoryPath) {
 // 添加新的 IPC 处理器
 ipcMain.handle('initialize-image-cache', async (event, directoryPath) => {
   return await initializeImageCache(directoryPath);
+});
+
+// 添加重建缓存的 IPC 处理器
+ipcMain.handle('rebuild-cache', async (event, directoryPath) => {
+  return await rebuildCache(directoryPath);
 });
 
 // 修改现有的文件大小和尺寸获取处理器以使用缓存
