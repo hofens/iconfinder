@@ -32,6 +32,7 @@ jobs:
       - name: Build Electron App
         env:
           CI: false  # 防止警告被视为错误
+          token: ${{ secrets.GITHUB_TOKEN }} 
         run: |
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
             npm run build:win
