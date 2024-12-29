@@ -1,6 +1,10 @@
 # Icon Finder
 [English](./README_EN.md) | 简体中文
 
+[![Vercel部署状态](https://therealsujitk-vercel-badge.vercel.app/?app=iconfinder)](https://iconfinder.vercel.app)
+
+🌐 在线访问: [https://iconfinder.vercel.app](https://iconfinder.vercel.app)
+
 一个基于图像相似度搜索的图标/图片查找工具，支持形状、颜色的智能匹配，可以帮助你在大量图片中快速找到相似的图片。
 ![Screenshot](./screenshots/screenshot.png)
 

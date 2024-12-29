@@ -1,6 +1,10 @@
 # Icon Finder
 English | [简体中文](./README.md)
 
+[![Vercel Deployment Status](https://therealsujitk-vercel-badge.vercel.app/?app=iconfinder)](https://iconfinder.vercel.app)
+
+🌐 Online Access: [https://iconfinder.vercel.app](https://iconfinder.vercel.app)
+
 An intelligent icon/image search tool based on image similarity, supporting shape and color matching to help you quickly find similar images among large collections.
 ![Screenshot](./screenshots/screenshot.png)
 
