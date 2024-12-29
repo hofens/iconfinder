@@ -202,24 +202,6 @@ function App() {
     return matches / maxLength;
   }
 
-  // Update getFileSize to use ipcRenderer
-  const getFileSize = async (filePath) => {
-    if (window.electron) {
-      try {
-        const size = await window.electron.getFileSize(filePath);
-        // return `${(size / 1024).toFixed(2)} KB`;
-        // todo
-        return size;
-      } catch (error) {
-        console.error('Error getting file size:', error);
-        return 'Unknown size';
-      }
-    } else {
-      const file = directoryStructure.find(f => f.path === filePath);
-      return file?.size ? `${(file.size / 1024).toFixed(2)} KB` : 'Unknown size';
-    }
-  };
-
   // 辅助函数：获取图片尺寸
   const getImageDimensions = async (filePath) => {
     if (window.electron) {
@@ -251,46 +233,6 @@ function App() {
         console.error('Error getting dimensions:', error);
         return 'Unknown dimensions';
       }
-    }
-  };
-
-  // 辅助函数：计算相似度
-  const calculateSimilarity = (fileName1, fileName2) => {
-    // 这里可以实现相似度计算的逻辑
-    // 如，简单的字符串比较或更复杂的算法
-    return (fileName1 === fileName2) ? '1.00' : '0.90'; // 示例返回值
-  };
-
-  // 辅助函数：获取图片预览
-  const getImagePreview = async (file) => {
-    try {
-      if (file instanceof File) {
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = (error) => {
-            console.error('Error reading file:', error);
-            reject(error);
-          };
-          reader.readAsDataURL(file);
-        });
-      } else if (file.blob) {
-        // Web 环境中的 blob 对象
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = reject;
-          reader.readAsDataURL(file.blob);
-        });
-      } else if (window.electron && file.path) {
-        // Electron 环境中的文件路径
-        return await window.electron.getImagePreview(file.path);
-      } else {
-        throw new Error('Unsupported file format');
-      }
-    } catch (error) {
-      console.error('Error in getImagePreview:', error);
-      throw error;
     }
   };
 
@@ -671,51 +613,6 @@ function App() {
   const isImageFile = (file) => {
     const imageTypes = /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i;
     return file.type.startsWith('image/') || imageTypes.test(file.name);
-  };
-
-  const saveToStorage = (key, data) => {
-    try {
-      localStorage.setItem(key, JSON.stringify(data));
-    } catch (error) {
-      console.error('Storage error:', error);
-    }
-  };
-
-  const loadFromStorage = (key, defaultValue = null) => {
-    try {
-      const data = localStorage.getItem(key);
-      return data ? JSON.parse(data) : defaultValue;
-    } catch (error) {
-      console.error('Storage error:', error);
-      return defaultValue;
-    }
-  };
-
-  const handleError = (error, operation) => {
-    console.error(`Error during ${operation}:`, error);
-    const message = window.electron 
-      ? `操作失败: ${error.message}`
-      : '操作失败，请检查浏览器控制台';
-    setStatus(message);
-  };
-
-  const getPlatformInfo = () => {
-    if (window.electron) {
-      return {
-        isElectron: true,
-        platform: process.platform,
-        isWindows: process.platform === 'win32',
-        isMac: process.platform === 'darwin',
-        isLinux: process.platform === 'linux'
-      };
-    }
-    return {
-      isElectron: false,
-      platform: 'web',
-      isWindows: false,
-      isMac: false,
-      isLinux: false
-    };
   };
 
   const resultsHeader = (
