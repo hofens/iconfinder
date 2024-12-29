@@ -20,6 +20,7 @@ function App() {
   const [resultDirFilter, setResultDirFilter] = useState('');
   const [availableDirs, setAvailableDirs] = useState([]);
   const [cacheProgress, setCacheProgress] = useState(null);
+  const [cacheInitialized, setCacheInitialized] = useState(false);
 
   // Ensure ipcRenderer is available
 
@@ -317,6 +318,7 @@ function App() {
 
     try {
       setStatus('正在重建缓存...');
+      setCacheInitialized(false);  // 重置缓存初始化状态
       
       if (window.electron) {
         await window.electron.rebuildCache(searchPath);
@@ -482,8 +484,18 @@ function App() {
         // 初始化图片缓存
         if (window.electron) {
           try {
-            setStatus('正在初始化图片缓存...');
-            await window.electron.initializeImageCache(directoryPath);
+            // 每次切换目录时重置缓存初始化状态
+            setCacheInitialized(false);
+            
+            // 检查当前目录的缓存文件是否存在
+            const cacheExists = await window.electron.checkCacheExists(directoryPath);
+            if (!cacheExists) {
+              setStatus('正在初始化图片缓存...');
+              await window.electron.initializeImageCache(directoryPath);
+            } else {
+              setStatus(`目录扫描完成，共发现 ${files.length} 个文件，其中含 ${imageFiles.length} 个图片文件`);
+              setCacheInitialized(true);
+            }
           } catch (error) {
             console.error('Error initializing image cache:', error);
             setStatus(`目录扫描完成，但缓存初始化失败: ${error.message}`);
@@ -495,6 +507,7 @@ function App() {
         setStatus('未选择任何目录');
         setSearchPath('');
         setDirectoryStructure([]);
+        setCacheInitialized(false);  // 重置缓存初始化状态
         // 清除所有分块存储
         for (let i = 0; i < localStorage.length; i++) {
           const key = localStorage.key(i);
@@ -706,7 +719,7 @@ function App() {
   const resultsHeader = (
     <div className="section-header">
       <div className="header-left">
-        <FaImage /> 搜索结果
+        <FaImage /> Search Results
       </div>
       <div className="header-controls">
         <div className="control-item">
@@ -885,6 +898,7 @@ function App() {
         case 'complete':
           setStatus(`缓存初始化完成，共处理 ${progress.total} 个文件`);
           setCacheProgress(null);
+          setCacheInitialized(true);
           break;
       }
     };
@@ -894,7 +908,7 @@ function App() {
   }, []);
 
   // 添加进度显示组件
-  const progressOverlay = cacheProgress && (
+  const progressOverlay = cacheProgress && !cacheInitialized && (
     <div className="progress-overlay">
       <div className="progress-content">
         <div className="progress-spinner"></div>

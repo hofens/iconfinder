@@ -49,6 +49,14 @@ contextBridge.exposeInMainWorld('electron', {
       throw error;
     }
   },
+  checkCacheExists: async (directoryPath) => {
+    try {
+      return await ipcRenderer.invoke('check-cache-exists', directoryPath);
+    } catch (error) {
+      console.error('Error checking cache:', error);
+      throw error;
+    }
+  },
   initializeImageCache: async (directoryPath) => {
     try {
       return new Promise((resolve, reject) => {

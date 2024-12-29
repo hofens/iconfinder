@@ -94,6 +94,31 @@ function ensureCacheDirectory() {
   return cacheDir;
 }
 
+// 添加检查缓存文件是否存在的函数
+async function checkCacheExists(directoryPath) {
+  try {
+    const cacheFilePath = getCacheFilePath(directoryPath);
+    if (!fs.existsSync(cacheFilePath)) {
+      return false;
+    }
+    
+    // 读取缓存文件
+    const cacheData = await fsPromises.readFile(cacheFilePath, 'utf8');
+    const cache = JSON.parse(cacheData);
+    
+    // 检查缓存版本
+    return cache.version === CACHE_VERSION;
+  } catch (error) {
+    console.error('Error checking cache:', error);
+    return false;
+  }
+}
+
+// 添加IPC处理器
+ipcMain.handle('check-cache-exists', async (event, directoryPath) => {
+  return await checkCacheExists(directoryPath);
+});
+
 // 修改缓存初始化函数
 async function initializeImageCache(directoryPath) {
   try {
