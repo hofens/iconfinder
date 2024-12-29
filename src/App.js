@@ -599,7 +599,6 @@ function App() {
       if (window.electron) {
         // 从缓存中查找文件信息
         const cachedFile = directoryStructure.find(file => file.path === result.path);
-        console.log(cachedFile);
         if (cachedFile) {
           // 使用缓存的文件信息
           const similarityResult = await window.electron.calculateImageSimilarity(
