@@ -25,9 +25,13 @@ jobs:
           cache: 'npm'
 
       - name: Install Dependencies
-        run: npm install
+        run: |
+          npm install
+          npm install --save-dev @babel/plugin-proposal-private-property-in-object
 
       - name: Build Electron App
+        env:
+          CI: false  # 防止警告被视为错误
         run: |
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
             npm run build:win
@@ -65,4 +69,4 @@ jobs:
             dist/*.dmg
             dist/latest*.yml
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+          GITHUB_TOKEN: ${{ secrets.ICON_FINDER_TOKEN }} 
