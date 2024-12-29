@@ -69,4 +69,4 @@ jobs:
             dist/*.dmg
             dist/latest*.yml
         env:
-          GH_TOKEN: ${{ secrets.ICON_FINDER_TOKEN }} 
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
