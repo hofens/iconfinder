@@ -8,6 +8,7 @@ function App() {
   const [previewUrl, setPreviewUrl] = useState(null);
   const [similarity, setSimilarity] = useState(0.50);
   const [searchResults, setSearchResults] = useState([]);
+  const [originalResults, setOriginalResults] = useState([]);
   const [selectedResult, setSelectedResult] = useState(null);
   const [searchPath, setSearchPath] = useState('');
   const [status, setStatus] = useState('');
@@ -126,6 +127,7 @@ function App() {
       
       if (forceRecalculate) {
         setSearchResults([]);
+        setOriginalResults([]);
       }
 
       const updatedResults = await Promise.all(results.map(async (fileEntry) => {
@@ -178,9 +180,13 @@ function App() {
       }));
 
       const validResults = updatedResults
-        .filter(result => result !== null && result.preview) // 确保结果有预览图片
+        .filter(result => result !== null && result.preview)
         .sort((a, b) => parseFloat(b.similarity) - parseFloat(a.similarity));
 
+      // 保存原始结果
+      setOriginalResults(validResults);
+      
+      // 根据当前相似度筛选结果
       const filteredResults = validResults.filter(
         result => parseFloat(result.similarity) >= similarity
       );
@@ -452,21 +458,38 @@ function App() {
       // 将值四舍五入到4位小数
       const roundedValue = Math.round(value * 10000) / 10000;
       setSimilarity(roundedValue);
-      setStatus(`调整相似度为: ${roundedValue.toFixed(4)}`);
       
-      if (similarityTimer) {
-        clearTimeout(similarityTimer);
-      }
-      
-      const timer = setTimeout(() => {
-        if (searchFile) {
-          setStatus('开始搜索...');
-          searchSimilarImages(searchFile);
-        }
-      }, 500);
-      
-      setSimilarityTimer(timer);
+      // 应用相似度和目录筛选
+      applyFilters(roundedValue, resultDirFilter);
     }
+  };
+
+  // 添加目录筛选处理函数
+  const handleDirectoryFilterChange = (e) => {
+    const dirFilter = e.target.value;
+    setResultDirFilter(dirFilter);
+    
+    // 应用相似度和目录筛选
+    applyFilters(similarity, dirFilter);
+  };
+
+  // 添加组合筛选函数
+  const applyFilters = (similarityValue, dirFilter) => {
+    const filteredResults = originalResults
+      .filter(result => {
+        // 相似度筛选
+        const meetsSimilarity = parseFloat(result.similarity) >= similarityValue;
+        
+        // 目录筛选
+        const meetsDirectory = !dirFilter || 
+          getRelativePath(result.path).split('/').slice(0, -1).join('/') === dirFilter;
+        
+        // 两个条件都满足才返回true
+        return meetsSimilarity && meetsDirectory;
+      });
+    
+    setSearchResults(filteredResults);
+    setStatus(`找到 ${filteredResults.length} 个相似图片`);
   };
 
   // 添加获取文本的辅助函数
@@ -567,43 +590,6 @@ function App() {
       }
     };
   }, [similarityTimer]);
-
-  const resultsHeader = (
-    <div className="section-header">
-      <div className="header-left">
-        <FaImage /> {getText('results.title')}
-      </div>
-      <div className="header-controls">
-        <div className="control-item">
-          <label>{getText('results.similarity')}:</label>
-          <input
-            type="range"
-            min="0.0000"
-            max="1.0000"
-            step="0.0001"
-            value={similarity}
-            onChange={handleSimilarityChange}
-          />
-          <span>{Number(similarity).toFixed(4)}</span>
-        </div>
-        {availableDirs.length > 0 && (
-          <div className="control-item">
-            <label>{getText('results.directory')}:</label>
-            <select
-              value={resultDirFilter}
-              onChange={(e) => setResultDirFilter(e.target.value)}
-              className="directory-select"
-            >
-              <option value="">{getText('results.allDirectories')}</option>
-              {availableDirs.map(dir => (
-                <option key={dir} value={dir}>{dir || getText('results.rootDirectory')}</option>
-              ))}
-            </select>
-          </div>
-        )}
-      </div>
-    </div>
-  );
 
   const handleResultClick = async (index) => {
     setSelectedResult(index);
@@ -933,7 +919,7 @@ function App() {
                       <label>{getText('results.directory')}:</label>
                       <select
                         value={resultDirFilter}
-                        onChange={(e) => setResultDirFilter(e.target.value)}
+                        onChange={handleDirectoryFilterChange}
                         className="directory-select"
                       >
                         <option value="">{getText('results.allDirectories')}</option>
@@ -948,27 +934,21 @@ function App() {
               <div className="results-container">
                 <div className="results-grid">
                   {searchResults.length > 0 ? (
-                    searchResults
-                      .filter(result => {
-                        if (!resultDirFilter) return true;
-                        const dir = getRelativePath(result.path).split('/').slice(0, -1).join('/');
-                        return dir === resultDirFilter;
-                      })
-                      .map((result, index) => (
-                        <div 
-                          key={index}
-                          className={`result-item ${selectedResult === index ? 'selected' : ''}`}
-                          onClick={() => handleResultClick(index)}
-                          onDoubleClick={() => handleDoubleClick(result.name)}
-                        >
-                          <div className="result-image">
-                            <img src={result.preview} alt={result.name} />
-                          </div>
-                          <div className="result-info">
-                            <div className="result-name" title={result.name}>{result.name}</div>
-                          </div>
+                    searchResults.map((result, index) => (
+                      <div 
+                        key={index}
+                        className={`result-item ${selectedResult === index ? 'selected' : ''}`}
+                        onClick={() => handleResultClick(index)}
+                        onDoubleClick={() => handleDoubleClick(result.name)}
+                      >
+                        <div className="result-image">
+                          <img src={result.preview} alt={result.name} />
                         </div>
-                      ))
+                        <div className="result-info">
+                          <div className="result-name" title={result.name}>{result.name}</div>
+                        </div>
+                      </div>
+                    ))
                   ) : (
                     <div className="no-results">
                       <FaImage size={40} />
