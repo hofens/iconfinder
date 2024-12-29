@@ -149,6 +149,16 @@ function App() {
               result.colorSimilarity * 0.7 + 
               result.shapeSimilarity * 0.3
             );
+
+            // 如果预览图片不存在，从缓存中获取
+            if (!preview) {
+              const cachedFile = directoryStructure.find(file => file.path === fileEntry.path);
+              if (cachedFile && cachedFile.preview) {
+                preview = cachedFile.preview;
+              } else {
+                preview = await window.electron.getImagePreview(fileEntry.path);
+              }
+            }
           } else {
             similarityResult = calculateSimpleSimilarity(file.name, fileEntry.name);
           }
@@ -168,7 +178,7 @@ function App() {
       }));
 
       const validResults = updatedResults
-        .filter(result => result !== null)
+        .filter(result => result !== null && result.preview) // 确保结果有预览图片
         .sort((a, b) => parseFloat(b.similarity) - parseFloat(a.similarity));
 
       const filteredResults = validResults.filter(
