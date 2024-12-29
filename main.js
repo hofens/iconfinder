@@ -118,8 +118,16 @@ async function initializeImageCache(directoryPath) {
     // 获取所有图片文件
     const files = await getAllImageFiles(directoryPath);
     console.log(`Found ${files.length} image files`);
+    
+    // 发送总文件数
+    const sender = BrowserWindow.getFocusedWindow()?.webContents;
+    sender?.send('cache-init-progress', {
+      type: 'start',
+      total: files.length
+    });
 
     // 处理每个文件
+    let processed = 0;
     for (const filePath of files) {
       try {
         const stats = await fsPromises.stat(filePath);
@@ -133,32 +141,60 @@ async function initializeImageCache(directoryPath) {
           // 使用缓存数据
           imageCache.set(filePath, existingCache.files[filePath]);
           console.log(`Using cached data for ${path.basename(filePath)}`);
-          continue;
+        } else {
+          // 计算新的特征
+          console.log(`Processing ${path.basename(filePath)}...`);
+          const metadata = await sharp(filePath).metadata();
+          const features = await getImageFeatures(filePath);
+
+          // 保存到缓存
+          imageCache.set(filePath, {
+            dimensions: `${metadata.width}x${metadata.height}`,
+            size: `${(stats.size / 1024).toFixed(2)} KB`,
+            features: features,
+            lastModified: lastModified
+          });
         }
 
-        // 计算新的特征
-        console.log(`Processing ${path.basename(filePath)}...`);
-        const metadata = await sharp(filePath).metadata();
-        const features = await getImageFeatures(filePath);
-
-        // 保存到缓存
-        imageCache.set(filePath, {
-          dimensions: `${metadata.width}x${metadata.height}`,
-          size: `${(stats.size / 1024).toFixed(2)} KB`,
-          features: features,
-          lastModified: lastModified
+        // 更新进度
+        processed++;
+        sender?.send('cache-init-progress', {
+          type: 'progress',
+          current: processed,
+          total: files.length,
+          file: path.basename(filePath)
         });
+
       } catch (error) {
         console.error(`Error processing file ${filePath}:`, error);
+        // 发送错误信息但继续处理
+        sender?.send('cache-init-progress', {
+          type: 'error',
+          file: path.basename(filePath),
+          error: error.message
+        });
       }
     }
 
     // 保存缓存到文件
     await saveCacheToFile(directoryPath);
     console.log('Cache initialization completed');
+    
+    // 发送完成消息
+    sender?.send('cache-init-progress', {
+      type: 'complete',
+      total: files.length
+    });
+
     return true;
   } catch (error) {
     console.error('Error initializing cache:', error);
+    // 发送错误消息
+    const sender = BrowserWindow.getFocusedWindow()?.webContents;
+    sender?.send('cache-init-progress', {
+      type: 'error',
+      error: error.message
+    });
     throw error;
   }
 }
@@ -656,15 +692,15 @@ function calculateSimilarityFromFeatures(sourceFeatures, targetFeatures, weights
   // 应用最终的相似度调整
   totalSimilarity = Math.pow(totalSimilarity, 0.9);
 
-  // console.log(`Similarity calculation:
-  //   Mode: ${colorWeight >= 0.7 ? 'Color Priority' : shapeWeight >= 0.7 ? 'Shape Priority' : 'Balanced'}
-  //   Color Weight: ${colorWeight.toFixed(2)}
-  //   Shape Weight: ${shapeWeight.toFixed(2)}
-  //   Color Similarity: ${histogramSimilarity.toFixed(4)}
-  //   Shape Similarity: ${shapeSimilarity.toFixed(4)}
-  //   Total Similarity: ${totalSimilarity.toFixed(4)}
-  //   Is Same Image: ${isSameImage}
-  // `);
+  console.log(`Similarity calculation:
+    Mode: ${colorWeight >= 0.7 ? 'Color Priority' : shapeWeight >= 0.7 ? 'Shape Priority' : 'Balanced'}
+    Color Weight: ${colorWeight.toFixed(2)}
+    Shape Weight: ${shapeWeight.toFixed(2)}
+    Color Similarity: ${histogramSimilarity.toFixed(4)}
+    Shape Similarity: ${shapeSimilarity.toFixed(4)}
+    Total Similarity: ${totalSimilarity.toFixed(4)}
+    Is Same Image: ${isSameImage}
+  `);
 
   return {
     totalSimilarity,

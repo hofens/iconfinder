@@ -19,6 +19,7 @@ function App() {
   const [showDetailedInfo, setShowDetailedInfo] = useState(false);
   const [resultDirFilter, setResultDirFilter] = useState('');
   const [availableDirs, setAvailableDirs] = useState([]);
+  const [cacheProgress, setCacheProgress] = useState(null);
 
   // Ensure ipcRenderer is available
 
@@ -480,10 +481,9 @@ function App() {
         
         // 初始化图片缓存
         if (window.electron) {
-          setStatus('正在初始化图片缓存...');
           try {
+            setStatus('正在初始化图片缓存...');
             await window.electron.initializeImageCache(directoryPath);
-            setStatus(`目录扫描完成，共发现 ${files.length} 个文件，其中含 ${imageFiles.length} 个图片文件`);
           } catch (error) {
             console.error('Error initializing image cache:', error);
             setStatus(`目录扫描完成，但缓存初始化失败: ${error.message}`);
@@ -865,6 +865,57 @@ function App() {
     }
   };
 
+  // 添加进度监听器
+  useEffect(() => {
+    const handleProgress = (event) => {
+      const progress = event.detail;
+      setCacheProgress(progress);
+      
+      // 根据进度类型更新状态
+      switch (progress.type) {
+        case 'start':
+          setStatus(`准备处理 ${progress.total} 个文件...`);
+          break;
+        case 'progress':
+          setStatus(`正在处理: ${progress.file} (${progress.current}/${progress.total})`);
+          break;
+        case 'error':
+          console.error(`处理文件出错: ${progress.file}`, progress.error);
+          break;
+        case 'complete':
+          setStatus(`缓存初始化完成，共处理 ${progress.total} 个文件`);
+          setCacheProgress(null);
+          break;
+      }
+    };
+
+    window.addEventListener('cache-init-progress', handleProgress);
+    return () => window.removeEventListener('cache-init-progress', handleProgress);
+  }, []);
+
+  // 添加进度显示组件
+  const progressOverlay = cacheProgress && (
+    <div className="progress-overlay">
+      <div className="progress-content">
+        <div className="progress-spinner"></div>
+        <div className="progress-text">
+          {cacheProgress.type === 'progress' && (
+            <>
+              <div className="progress-bar">
+                <div 
+                  className="progress-bar-fill" 
+                  style={{width: `${(cacheProgress.current / cacheProgress.total * 100)}%`}}
+                ></div>
+              </div>
+              <div>处理进度: {cacheProgress.current}/{cacheProgress.total}</div>
+              <div>当前文件: {cacheProgress.file}</div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="App">
       <div className="container" style={{ display: 'flex' }}>
@@ -1040,6 +1091,7 @@ function App() {
           </div>
         </div>
       </div>
+      {progressOverlay}
       {settingsModal}
     </div>
   );

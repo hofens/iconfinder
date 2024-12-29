@@ -51,7 +51,28 @@ contextBridge.exposeInMainWorld('electron', {
   },
   initializeImageCache: async (directoryPath) => {
     try {
-      return await ipcRenderer.invoke('initialize-image-cache', directoryPath);
+      return new Promise((resolve, reject) => {
+        const progressHandler = (event, progress) => {
+          window.dispatchEvent(new CustomEvent('cache-init-progress', { 
+            detail: progress 
+          }));
+
+          if (progress.type === 'complete') {
+            ipcRenderer.removeListener('cache-init-progress', progressHandler);
+            resolve(true);
+          } else if (progress.type === 'error') {
+            ipcRenderer.removeListener('cache-init-progress', progressHandler);
+            reject(new Error(progress.error));
+          }
+        };
+
+        ipcRenderer.on('cache-init-progress', progressHandler);
+
+        ipcRenderer.invoke('initialize-image-cache', directoryPath).catch(error => {
+          ipcRenderer.removeListener('cache-init-progress', progressHandler);
+          reject(error);
+        });
+      });
     } catch (error) {
       console.error('Error initializing image cache:', error);
       throw error;
