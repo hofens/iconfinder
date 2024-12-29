@@ -812,15 +812,15 @@ function App() {
                   }}
                   placeholder="Enter directory path to search"
                 />
-                <button className="browse-btn" onClick={handleBrowseDirectory}>Browse</button>
-                <button onClick={handleSearch} disabled={!searchPath.trim()}>Research</button>
-                <button onClick={resetPreview} disabled={!searchPath.trim()}>
+                <button className="browse-btn" onClick={handleBrowseDirectory} title="选择要搜索的目录，首次选择会缓存目录中图片特征，提高搜索速度">Browse</button>
+                <button onClick={handleSearch} disabled={!searchPath.trim()} title="使用当前图片重新搜索">Research</button>
+                <button onClick={resetPreview} disabled={!searchPath.trim()} title="重置所有搜索及预览状态">
                   Reset
                 </button>
-                <button onClick={rebuildCache} disabled={!searchPath.trim()}>
+                <button onClick={rebuildCache} disabled={!searchPath.trim()} title="重建图片缓存">
                   Rebuild Cache
                 </button>
-                <button className="settings-btn" onClick={() => setShowSettings(true)}>
+                <button className="settings-btn" onClick={() => setShowSettings(true)} title="打开设置面板">
                   <FaCog /> Settings
                 </button>
               </div>
@@ -858,6 +858,7 @@ function App() {
                     <label 
                       htmlFor="file-input" 
                       className={`file-input-label ${!searchPath.trim() ? 'disabled' : ''}`}
+                      title="选择要搜索的图片文件"
                     >
                       Choose File
                     </label>
