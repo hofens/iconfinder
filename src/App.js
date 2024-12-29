@@ -519,27 +519,9 @@ function App() {
         <div className="modal-actions">
           <button 
             style={{ backgroundColor: '#3182ce', color: 'white' }}
-            onClick={() => {
-              const settings = {
-                searchPath,
-                similarity,
-                excludePaths,
-                includePaths,
-                showDetailedInfo,
-                language,
-              };
-              localStorage.setItem('appSettings', JSON.stringify(settings));
-              setShowSettings(false);
-            }}
-          >
-            {getText('settings.confirm')}
-          </button>
-          <div style={{ margin: '0 5px' }} />
-          <button 
-            style={{ backgroundColor: '#f44336', color: 'white' }}
             onClick={() => setShowSettings(false)}
           >
-            {getText('settings.cancel')}
+            {getText('settings.close')}
           </button>
         </div>
       </div>

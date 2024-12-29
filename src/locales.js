@@ -6,8 +6,7 @@ export const locales = {
       includePaths: '包含路径 (正则表达式)',
       excludePaths: '排除路径 (正则表达式)',
       showDetailedInfo: '显示详细相似度信息',
-      confirm: '确认',
-      cancel: '取消'
+      close: '关闭'
     },
     directory: {
       title: '搜索目录',
@@ -57,8 +56,7 @@ export const locales = {
       includePaths: 'Include Paths (Regex)',
       excludePaths: 'Exclude Paths (Regex)',
       showDetailedInfo: 'Show Detailed Similarity Info',
-      confirm: 'Confirm',
-      cancel: 'Cancel'
+      close: 'Close'
     },
     directory: {
       title: 'Search Directory',
