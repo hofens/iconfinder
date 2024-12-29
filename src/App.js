@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 import { FaUpload, FaFolder, FaImage, FaCog } from 'react-icons/fa';
+import { locales } from './locales';
 
 function App() {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -23,6 +24,7 @@ function App() {
   const [cacheInitialized, setCacheInitialized] = useState(false);
   const [showImagePreview, setShowImagePreview] = useState(false);
   const [previewImageUrl, setPreviewImageUrl] = useState(null);
+  const [language, setLanguage] = useState('zh');
 
   // Ensure ipcRenderer is available
 
@@ -35,6 +37,7 @@ function App() {
     setExcludePaths(savedSettings.excludePaths || '');
     setIncludePaths(savedSettings.includePaths || '');
     setShowDetailedInfo(savedSettings.showDetailedInfo || false);
+    setLanguage(savedSettings.language || 'zh');
     // 加载保存的目录结构
     const savedStructure = loadDirectoryStructure();
     setDirectoryStructure(savedStructure);
@@ -48,9 +51,10 @@ function App() {
       excludePaths,
       includePaths,
       showDetailedInfo,
+      language,
     };
     localStorage.setItem('appSettings', JSON.stringify(settings));
-  }, [searchPath, similarity, excludePaths, includePaths, showDetailedInfo]);
+  }, [searchPath, similarity, excludePaths, includePaths, showDetailedInfo, language]);
 
   const handleDrop = (e) => {
     e.preventDefault();
@@ -456,27 +460,49 @@ function App() {
     }
   };
 
+  // 添加获取文本的辅助函数
+  const getText = (path) => {
+    const keys = path.split('.');
+    let current = locales[language];
+    for (const key of keys) {
+      if (current[key] === undefined) return path;
+      current = current[key];
+    }
+    return current;
+  };
+
   const settingsModal = showSettings && (
     <div className="modal-overlay">
       <div className="modal">
-        <h2>搜索设置</h2>
+        <h2>{getText('settings.title')}</h2>
         <div className="modal-content">
           <div className="setting-group">
-            <label>包含路径 (正则表达式):</label>
+            <label>{getText('settings.language')}</label>
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+              style={{ width: '100%', padding: '8px', marginTop: '4px' }}
+            >
+              <option value="zh">中文</option>
+              <option value="en">English</option>
+            </select>
+          </div>
+          <div className="setting-group">
+            <label>{getText('settings.includePaths')}</label>
             <input
               type="text"
               value={includePaths}
               onChange={(e) => setIncludePaths(e.target.value)}
-              placeholder="例如: \.png$|\.jpg$"
+              placeholder={language === 'zh' ? "例如: \\.png$|\\.jpg$" : "e.g: \\.png$|\\.jpg$"}
             />
           </div>
           <div className="setting-group">
-            <label>排除路径 (正则表达式):</label>
+            <label>{getText('settings.excludePaths')}</label>
             <input
               type="text"
               value={excludePaths}
               onChange={(e) => setExcludePaths(e.target.value)}
-              placeholder="例如: node_modules|\.git"
+              placeholder={language === 'zh' ? "例如: node_modules|\\.git" : "e.g: node_modules|\\.git"}
             />
           </div>
           <div className="setting-group">
@@ -486,7 +512,7 @@ function App() {
                 checked={showDetailedInfo}
                 onChange={(e) => setShowDetailedInfo(e.target.checked)}
               />
-              显示详细相似度信息
+              {getText('settings.showDetailedInfo')}
             </label>
           </div>
         </div>
@@ -500,19 +526,20 @@ function App() {
                 excludePaths,
                 includePaths,
                 showDetailedInfo,
+                language,
               };
               localStorage.setItem('appSettings', JSON.stringify(settings));
               setShowSettings(false);
             }}
           >
-            确认
+            {getText('settings.confirm')}
           </button>
           <div style={{ margin: '0 5px' }} />
           <button 
             style={{ backgroundColor: '#f44336', color: 'white' }}
             onClick={() => setShowSettings(false)}
           >
-            取消
+            {getText('settings.cancel')}
           </button>
         </div>
       </div>
@@ -553,11 +580,11 @@ function App() {
   const resultsHeader = (
     <div className="section-header">
       <div className="header-left">
-        <FaImage /> Search Results
+        <FaImage /> {getText('results.title')}
       </div>
       <div className="header-controls">
         <div className="control-item">
-          <label>相似度:</label>
+          <label>{getText('results.similarity')}:</label>
           <input
             type="range"
             min="0.0000"
@@ -570,15 +597,15 @@ function App() {
         </div>
         {availableDirs.length > 0 && (
           <div className="control-item">
-            <label>目录:</label>
+            <label>{getText('results.directory')}:</label>
             <select
               value={resultDirFilter}
               onChange={(e) => setResultDirFilter(e.target.value)}
               className="directory-select"
             >
-              <option value="">全部</option>
+              <option value="">{getText('results.allDirectories')}</option>
               {availableDirs.map(dir => (
-                <option key={dir} value={dir}>{dir || '根目录'}</option>
+                <option key={dir} value={dir}>{dir || getText('results.rootDirectory')}</option>
               ))}
             </select>
           </div>
@@ -796,7 +823,7 @@ function App() {
             <div className="section directory-section">
               <div className="section-header">
                 <div className="header-left">
-                  <FaFolder /> Search Directory
+                  <FaFolder /> {getText('directory.title')}
                 </div>
               </div>
               <div className="directory-input">
@@ -810,18 +837,18 @@ function App() {
                       localStorage.removeItem('directoryStructure');
                     }
                   }}
-                  placeholder="Enter directory path to search"
+                  placeholder={getText('directory.placeholder')}
                 />
-                <button className="browse-btn" onClick={handleBrowseDirectory} title="选择要搜索的目录，首次选择会缓存目录中图片特征，提高搜索速度">Browse</button>
-                <button onClick={handleSearch} disabled={!searchPath.trim()} title="使用当前图片重新搜索">Research</button>
-                <button onClick={resetPreview} disabled={!searchPath.trim()} title="重置所有搜索及预览状态">
-                  Reset
+                <button className="browse-btn" onClick={handleBrowseDirectory} title={getText('directory.browse')}>{getText('directory.browse')}</button>
+                <button onClick={handleSearch} disabled={!searchPath.trim()} title={getText('directory.research')}>{getText('directory.research')}</button>
+                <button onClick={resetPreview} disabled={!searchPath.trim()} title={getText('directory.reset')}>
+                  {getText('directory.reset')}
                 </button>
-                <button onClick={rebuildCache} disabled={!searchPath.trim()} title="重建图片缓存">
-                  Rebuild Cache
+                <button onClick={rebuildCache} disabled={!searchPath.trim()} title={getText('directory.rebuildCache')}>
+                  {getText('directory.rebuildCache')}
                 </button>
-                <button className="settings-btn" onClick={() => setShowSettings(true)} title="打开设置面板">
-                  <FaCog /> Settings
+                <button className="settings-btn" onClick={() => setShowSettings(true)} title={getText('directory.settings')}>
+                  <FaCog /> {getText('directory.settings')}
                 </button>
               </div>
             </div>
@@ -836,17 +863,12 @@ function App() {
                       handleDrop(e);
                     }
                   }}
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    if (searchPath.trim()) {
-                      handleDragOver(e);
-                    }
-                  }}
+                  onDragOver={handleDragOver}
                 >
                   <div className="upload-placeholder">
                     <FaUpload size={40} />
-                    <p>{searchPath.trim() ? 'Drag and drop image here' : 'Please select a directory first'}</p>
-                    <p>or</p>
+                    <p>{searchPath.trim() ? getText('upload.dragDrop') : getText('upload.selectDirectory')}</p>
+                    <p>{getText('upload.or')}</p>
                     <input
                       type="file"
                       accept="image/*,.jpg,.jpeg,.png,.gif,.bmp,.webp,.svg"
@@ -858,9 +880,9 @@ function App() {
                     <label 
                       htmlFor="file-input" 
                       className={`file-input-label ${!searchPath.trim() ? 'disabled' : ''}`}
-                      title="选择要搜索的图片文件"
+                      title={getText('upload.chooseFile')}
                     >
-                      Choose File
+                      {getText('upload.chooseFile')}
                     </label>
                   </div>
                 </div>
@@ -875,17 +897,17 @@ function App() {
                         style={{ cursor: 'pointer' }}
                       />
                       <div className="preview-info">
-                        <p><span>Path:</span> {selectedFile?.path || selectedFile?.name}</p>
-                        <p><span>Size:</span> {(selectedFile?.size / 1024).toFixed(2)} KB</p>
+                        <p><span>{getText('preview.path')}:</span> {selectedFile?.path || selectedFile?.name}</p>
+                        <p><span>{getText('preview.size')}:</span> {(selectedFile?.size / 1024).toFixed(2)} KB</p>
                         {selectedFile && (
-                          <p><span>Dimensions:</span> <span id="dimensions">Loading...</span></p>
+                          <p><span>{getText('preview.dimensions')}:</span> <span id="dimensions">Loading...</span></p>
                         )}
                       </div>
                     </div>
                   ) : (
                     <div className="preview-placeholder">
                       <FaImage size={40} />
-                      <p>Preview Area</p>
+                      <p>{getText('preview.title')}</p>
                     </div>
                   )}
                 </div>
@@ -893,7 +915,40 @@ function App() {
             </div>
 
             <div className="section results-section">
-              {resultsHeader}
+              <div className="section-header">
+                <div className="header-left">
+                  <FaImage /> {getText('results.title')}
+                </div>
+                <div className="header-controls">
+                  <div className="control-item">
+                    <label>{getText('results.similarity')}:</label>
+                    <input
+                      type="range"
+                      min="0.0000"
+                      max="1.0000"
+                      step="0.0001"
+                      value={similarity}
+                      onChange={handleSimilarityChange}
+                    />
+                    <span>{Number(similarity).toFixed(4)}</span>
+                  </div>
+                  {availableDirs.length > 0 && (
+                    <div className="control-item">
+                      <label>{getText('results.directory')}:</label>
+                      <select
+                        value={resultDirFilter}
+                        onChange={(e) => setResultDirFilter(e.target.value)}
+                        className="directory-select"
+                      >
+                        <option value="">{getText('results.allDirectories')}</option>
+                        {availableDirs.map(dir => (
+                          <option key={dir} value={dir}>{dir || getText('results.rootDirectory')}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+              </div>
               <div className="results-container">
                 <div className="results-grid">
                   {searchResults.length > 0 ? (
@@ -921,8 +976,8 @@ function App() {
                   ) : (
                     <div className="no-results">
                       <FaImage size={40} />
-                      <p>No results found</p>
-                      <p>Upload an image to start searching</p>
+                      <p>{getText('results.noResults')}</p>
+                      <p>{getText('results.uploadToStart')}</p>
                     </div>
                   )}
                 </div>
@@ -938,16 +993,15 @@ function App() {
                         />
                       </div>
                       <div className="details">
-                        <h3>文件详情</h3>
-                        <p data-label="路径:">{getRelativePath(searchResults[selectedResult].path)}</p>
-                        <p data-label="名称:">{searchResults[selectedResult].name}</p>
-                        <p data-label="大小:">{searchResults[selectedResult].size}</p>
-                        <p data-label="尺寸:">{searchResults[selectedResult].dimensions}</p>
-                        <p data-label="总相似度:">{searchResults[selectedResult].similarity}</p>
+                        <h3>{getText('results.fileDetails')}</h3>
+                        <p data-label={`${getText('preview.path')}:`}>{getRelativePath(searchResults[selectedResult].path)}</p>
+                        <p data-label={`${getText('preview.size')}:`}>{searchResults[selectedResult].size}</p>
+                        <p data-label={`${getText('preview.dimensions')}:`}>{searchResults[selectedResult].dimensions}</p>
+                        <p data-label={`${getText('results.totalSimilarity')}:`}>{searchResults[selectedResult].similarity}</p>
                         {showDetailedInfo && (
                           <>
-                            <p data-label="颜色相似度:">{searchResults[selectedResult].colorSimilarity}</p>
-                            <p data-label="形状相似度:">{searchResults[selectedResult].shapeSimilarity}</p>
+                            <p data-label={`${getText('results.colorSimilarity')}:`}>{searchResults[selectedResult].colorSimilarity}</p>
+                            <p data-label={`${getText('results.shapeSimilarity')}:`}>{searchResults[selectedResult].shapeSimilarity}</p>
                           </>
                         )}
                       </div>
@@ -955,7 +1009,7 @@ function App() {
                   ) : (
                     <div className="preview-placeholder">
                       <FaImage size={40} />
-                      <p>Select an item to view details</p>
+                      <p>{getText('results.selectToView')}</p>
                     </div>
                   )}
                 </div>
@@ -964,7 +1018,7 @@ function App() {
 
             <div className="section status-section">
               <div className="status-message" style={{ whiteSpace: 'pre-line' }}>
-                {status || 'Ready to process'}
+                {status || getText('status.ready')}
               </div>
             </div>
           </div>
