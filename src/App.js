@@ -21,6 +21,8 @@ function App() {
   const [availableDirs, setAvailableDirs] = useState([]);
   const [cacheProgress, setCacheProgress] = useState(null);
   const [cacheInitialized, setCacheInitialized] = useState(false);
+  const [showImagePreview, setShowImagePreview] = useState(false);
+  const [previewImageUrl, setPreviewImageUrl] = useState(null);
 
   // Ensure ipcRenderer is available
 
@@ -930,6 +932,30 @@ function App() {
     </div>
   );
 
+  // 添加图片预览模态框组件
+  const imagePreviewModal = showImagePreview && (
+    <div 
+      className="modal-overlay"
+      onClick={() => setShowImagePreview(false)}
+    >
+      <div className="image-preview-modal" onClick={e => e.stopPropagation()}>
+        <img src={previewImageUrl} alt="Preview" />
+        <button 
+          className="close-button"
+          onClick={() => setShowImagePreview(false)}
+        >
+          ×
+        </button>
+      </div>
+    </div>
+  );
+
+  // 修改预览区域的图片点击处理
+  const handlePreviewClick = (imageUrl) => {
+    setPreviewImageUrl(imageUrl);
+    setShowImagePreview(true);
+  };
+
   return (
     <div className="App">
       <div className="container" style={{ display: 'flex' }}>
@@ -1010,7 +1036,13 @@ function App() {
                 <div className="preview-area">
                   {previewUrl ? (
                     <div className="preview-content">
-                      <img src={previewUrl} alt="Preview" className="preview-image" />
+                      <img 
+                        src={previewUrl} 
+                        alt="Preview" 
+                        className="preview-image"
+                        onClick={() => handlePreviewClick(previewUrl)}
+                        style={{ cursor: 'pointer' }}
+                      />
                       <div className="preview-info">
                         <p><span>Path:</span> {selectedFile?.path || selectedFile?.name}</p>
                         <p><span>Size:</span> {(selectedFile?.size / 1024).toFixed(2)} KB</p>
@@ -1070,6 +1102,8 @@ function App() {
                         <img 
                           src={searchResults[selectedResult].preview} 
                           alt={searchResults[selectedResult].name}
+                          onClick={() => handlePreviewClick(searchResults[selectedResult].preview)}
+                          style={{ cursor: 'pointer' }}
                         />
                       </div>
                       <div className="details">
@@ -1107,6 +1141,7 @@ function App() {
       </div>
       {progressOverlay}
       {settingsModal}
+      {imagePreviewModal}
     </div>
   );
 }
