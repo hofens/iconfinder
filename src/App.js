@@ -252,7 +252,7 @@ function App() {
 
   // 辅助函数：计算相似度
   const calculateSimilarity = (fileName1, fileName2) => {
-    // 这里可以实现相似度计��的逻辑
+    // 这里可以实现相似度计算的逻辑
     // 如，简单的字符串比较或更复杂的算法
     return (fileName1 === fileName2) ? '1.00' : '0.90'; // 示例返回值
   };
@@ -478,7 +478,19 @@ function App() {
         // 更新搜索路径
         setSearchPath(directoryPath);
         
-        setStatus(`目录扫描完成，共发现 ${files.length} 个文件，其中含 ${imageFiles.length} 个图片文件`);
+        // 初始化图片缓存
+        if (window.electron) {
+          setStatus('正在初始化图片缓存...');
+          try {
+            await window.electron.initializeImageCache(directoryPath);
+            setStatus(`目录扫描完成，共发现 ${files.length} 个文件，其中含 ${imageFiles.length} 个图片文件`);
+          } catch (error) {
+            console.error('Error initializing image cache:', error);
+            setStatus(`目录扫描完成，但缓存初始化失败: ${error.message}`);
+          }
+        } else {
+          setStatus(`目录扫描完成，共发现 ${files.length} 个文件，其中含 ${imageFiles.length} 个图片文件`);
+        }
       } else {
         setStatus('未选择任何目录');
         setSearchPath('');

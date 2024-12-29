@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
-const fs = require('fs').promises;
+const fs = require('fs');
+const fsPromises = require('fs').promises;
 const path = require('path');
 const sharp = require('sharp');
 
@@ -72,9 +73,26 @@ app.whenReady().then(createWindow);
 const imageCache = new Map();
 const similarityCache = new Map();
 
-// 添加缓存文件相关的常量
-const CACHE_FILE_NAME = '.image-cache.json';
+// 修改缓存相关的常量
+const CACHE_FILE_NAME = 'image-cache.json';
 const CACHE_VERSION = '1.0';
+
+// 获取缓存文件路径
+function getCacheFilePath(directoryPath) {
+  // 使用目录路径的哈希值作为缓存文件名的一部分，以支持多目录
+  const directoryHash = require('crypto').createHash('md5').update(directoryPath).digest('hex');
+  const cacheFileName = `${directoryHash}-${CACHE_FILE_NAME}`;
+  return path.join(app.getPath('cache'), 'iconfinder', cacheFileName);
+}
+
+// 确保缓存目录存在
+function ensureCacheDirectory() {
+  const cacheDir = path.join(app.getPath('cache'), 'iconfinder');
+  if (!fs.existsSync(cacheDir)) {
+    fs.mkdirSync(cacheDir, { recursive: true });
+  }
+  return cacheDir;
+}
 
 // 修改缓存初始化函数
 async function initializeImageCache(directoryPath) {
@@ -83,11 +101,14 @@ async function initializeImageCache(directoryPath) {
     imageCache.clear();
     similarityCache.clear();
 
-    // 尝试加载现有缓存
-    const cacheFilePath = path.join(directoryPath, CACHE_FILE_NAME);
+    // 确保缓存目录存在
+    ensureCacheDirectory();
+
+    // 获取缓存文件路径
+    const cacheFilePath = getCacheFilePath(directoryPath);
     let existingCache = null;
     try {
-      const cacheData = await fs.readFile(cacheFilePath, 'utf8');
+      const cacheData = await fsPromises.readFile(cacheFilePath, 'utf8');
       existingCache = JSON.parse(cacheData);
       console.log('Found existing cache file');
     } catch (error) {
@@ -101,7 +122,7 @@ async function initializeImageCache(directoryPath) {
     // 处理每个文件
     for (const filePath of files) {
       try {
-        const stats = await fs.stat(filePath);
+        const stats = await fsPromises.stat(filePath);
         const lastModified = stats.mtime.getTime();
 
         // 检查缓存是否有效
@@ -142,9 +163,9 @@ async function initializeImageCache(directoryPath) {
   }
 }
 
-// 添加缓存保存函数
+// 修改缓存保存函数
 async function saveCacheToFile(directoryPath) {
-  const cacheFilePath = path.join(directoryPath, CACHE_FILE_NAME);
+  const cacheFilePath = getCacheFilePath(directoryPath);
   const cacheData = {
     version: CACHE_VERSION,
     timestamp: Date.now(),
@@ -152,21 +173,21 @@ async function saveCacheToFile(directoryPath) {
   };
 
   try {
-    await fs.writeFile(cacheFilePath, JSON.stringify(cacheData, null, 2));
-    console.log('Cache saved to file');
+    await fsPromises.writeFile(cacheFilePath, JSON.stringify(cacheData, null, 2));
+    console.log('Cache saved to file:', cacheFilePath);
   } catch (error) {
     console.error('Error saving cache:', error);
     throw error;
   }
 }
 
-// 添加递归获取图片文件的函数
+// 修改递归获取图片文件的函数
 async function getAllImageFiles(dirPath) {
   const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg'];
   let results = [];
 
   async function traverse(currentPath) {
-    const files = await fs.readdir(currentPath, { withFileTypes: true });
+    const files = await fsPromises.readdir(currentPath, { withFileTypes: true });
     
     for (const file of files) {
       const fullPath = path.join(currentPath, file.name);
@@ -191,6 +212,8 @@ async function calculateSimilarityWithCache(sourcePath, targetPath, weights) {
   if (similarityCache.has(cacheKey)) {
     console.log('Using cached similarity result');
     return similarityCache.get(cacheKey);
+  } else {
+    console.log('No cached similarity result found');
   }
 
   // 获取或计算源图片特征
@@ -198,6 +221,8 @@ async function calculateSimilarityWithCache(sourcePath, targetPath, weights) {
   if (!sourceFeatures) {
     console.log('Computing features for source image');
     sourceFeatures = await getImageFeatures(sourcePath);
+  } else {
+    console.log('Using cached features for source image');
   }
 
   // 获取或计算目标图片特征
@@ -205,6 +230,8 @@ async function calculateSimilarityWithCache(sourcePath, targetPath, weights) {
   if (!targetFeatures) {
     console.log('Computing features for target image');
     targetFeatures = await getImageFeatures(targetPath);
+  } else {
+    console.log('Using cached features for target image');
   }
 
   // 计算相似度
@@ -216,7 +243,7 @@ async function calculateSimilarityWithCache(sourcePath, targetPath, weights) {
   return result;
 }
 
-// 添加 rebuildCache 函数
+// 修改缓存重建函数
 async function rebuildCache(directoryPath) {
   try {
     console.log('Rebuilding cache for directory:', directoryPath);
@@ -226,9 +253,9 @@ async function rebuildCache(directoryPath) {
     similarityCache.clear();
 
     // 删除缓存文件
-    const cacheFilePath = path.join(directoryPath, CACHE_FILE_NAME);
+    const cacheFilePath = getCacheFilePath(directoryPath);
     try {
-      await fs.unlink(cacheFilePath);
+      await fsPromises.unlink(cacheFilePath);
       console.log('Existing cache file deleted');
     } catch (error) {
       // 如果文件不存在，忽略错误
@@ -250,10 +277,6 @@ ipcMain.handle('initialize-image-cache', async (event, directoryPath) => {
   return await initializeImageCache(directoryPath);
 });
 
-ipcMain.handle('rebuild-cache', async (event, directoryPath) => {
-  return await rebuildCache(directoryPath);
-});
-
 // 修改现有的文件大小和尺寸获取处理器以使用缓存
 ipcMain.on('get-file-size', async (event, filePath) => {
   const absolutePath = normalizePath(filePath);
@@ -261,7 +284,7 @@ ipcMain.on('get-file-size', async (event, filePath) => {
     if (imageCache.has(absolutePath)) {
       event.reply('file-size-response', imageCache.get(absolutePath).size);
     } else {
-      const stats = await fs.stat(absolutePath);
+      const stats = await fsPromises.stat(absolutePath);
       const size = `${(stats.size / 1024).toFixed(2)} KB`;
       event.reply('file-size-response', size);
     }
@@ -525,15 +548,15 @@ function calculateShapeSimilarity(ratio1, ratio2, dims1, dims2, corners1, corner
   // 5. 应用非线性变换
   const finalSimilarity = Math.pow(shapeSimilarity, 0.7);
   
-  console.log(`Shape similarity calculation:
-    Ratio Similarity: ${ratioSimilarity.toFixed(4)}
-    Area Similarity: ${areaSimilarity.toFixed(4)}
-    Dimension Similarity: ${dimensionSimilarity.toFixed(4)}
-    Orientation Match: ${orientationMatch}
-    Corner Similarity: ${cornerSimilarity.toFixed(4)}
-    Size Similarity: ${sizeSimilarity.toFixed(4)}
-    Final Shape Similarity: ${finalSimilarity.toFixed(4)}
-  `);
+  // console.log(`Shape similarity calculation:
+  //   Ratio Similarity: ${ratioSimilarity.toFixed(4)}
+  //   Area Similarity: ${areaSimilarity.toFixed(4)}
+  //   Dimension Similarity: ${dimensionSimilarity.toFixed(4)}
+  //   Orientation Match: ${orientationMatch}
+  //   Corner Similarity: ${cornerSimilarity.toFixed(4)}
+  //   Size Similarity: ${sizeSimilarity.toFixed(4)}
+  //   Final Shape Similarity: ${finalSimilarity.toFixed(4)}
+  // `);
   
   return finalSimilarity;
 }
@@ -541,7 +564,7 @@ function calculateShapeSimilarity(ratio1, ratio2, dims1, dims2, corners1, corner
 // 添加获取图片预览的 IPC 处理器
 ipcMain.handle('get-image-preview', async (event, filePath) => {
   try {
-    const data = await fs.readFile(filePath);
+    const data = await fsPromises.readFile(filePath);
     // 获取文件的 MIME 类型
     const mimeType = getMimeType(filePath);
     return `data:${mimeType};base64,${data.toString('base64')}`;
@@ -633,15 +656,15 @@ function calculateSimilarityFromFeatures(sourceFeatures, targetFeatures, weights
   // 应用最终的相似度调整
   totalSimilarity = Math.pow(totalSimilarity, 0.9);
 
-  console.log(`Similarity calculation:
-    Mode: ${colorWeight >= 0.7 ? 'Color Priority' : shapeWeight >= 0.7 ? 'Shape Priority' : 'Balanced'}
-    Color Weight: ${colorWeight.toFixed(2)}
-    Shape Weight: ${shapeWeight.toFixed(2)}
-    Color Similarity: ${histogramSimilarity.toFixed(4)}
-    Shape Similarity: ${shapeSimilarity.toFixed(4)}
-    Total Similarity: ${totalSimilarity.toFixed(4)}
-    Is Same Image: ${isSameImage}
-  `);
+  // console.log(`Similarity calculation:
+  //   Mode: ${colorWeight >= 0.7 ? 'Color Priority' : shapeWeight >= 0.7 ? 'Shape Priority' : 'Balanced'}
+  //   Color Weight: ${colorWeight.toFixed(2)}
+  //   Shape Weight: ${shapeWeight.toFixed(2)}
+  //   Color Similarity: ${histogramSimilarity.toFixed(4)}
+  //   Shape Similarity: ${shapeSimilarity.toFixed(4)}
+  //   Total Similarity: ${totalSimilarity.toFixed(4)}
+  //   Is Same Image: ${isSameImage}
+  // `);
 
   return {
     totalSimilarity,
