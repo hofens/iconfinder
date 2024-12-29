@@ -981,9 +981,7 @@ function App() {
                   placeholder="Enter directory path to search"
                 />
                 <button className="browse-btn" onClick={handleBrowseDirectory}>Browse</button>
-                <button onClick={handleSearch} disabled={!searchPath.trim()}>
-                  <FaSearch /> Research
-                </button>
+                <button onClick={handleSearch} disabled={!searchPath.trim()}>Research</button>
                 <button onClick={resetPreview} disabled={!searchPath.trim()}>
                   Reset
                 </button>

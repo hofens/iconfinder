@@ -8,7 +8,7 @@ body {
 
 .App {
   padding: 20px;
-  height: 1000px;
+  height: 960px;
   margin: 0 auto;
   background-color: #ffffff;
   box-shadow: 0 0 20px rgba(0,0,0,0.05);
@@ -40,6 +40,7 @@ body {
   font-weight: 600;
   color: #1a365d;
   margin-bottom: 15px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -149,7 +150,7 @@ body {
   border: 2px dashed #e2e8f0;
   border-radius: 12px;
   padding: 16px;
-  min-height: 240px;
+  height: 240px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -168,7 +169,7 @@ body {
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   padding: 16px;
-  min-height: 240px;
+  height: 240px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -244,7 +245,7 @@ body {
 .results-grid {
   flex: 2;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
   gap: 12px;
   height: 320px;
   overflow-y: auto;
