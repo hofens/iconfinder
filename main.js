@@ -79,15 +79,20 @@ const CACHE_VERSION = '1.0';
 
 // 获取缓存文件路径
 function getCacheFilePath(directoryPath) {
-  // 使用目录路径的哈希值作为缓存文件名的一部分，以支持多目录
-  const directoryHash = require('crypto').createHash('md5').update(directoryPath).digest('hex');
-  const cacheFileName = `${directoryHash}-${CACHE_FILE_NAME}`;
-  return path.join(app.getPath('cache'), 'iconfinder', cacheFileName);
+  // 直接使用目录路径拼接缓存文件名
+  const cacheDir = path.join(app.getPath('cache'), 'iconfinder', 'image-cache');
+  // 确保缓存目录存在
+  if (!fs.existsSync(cacheDir)) {
+    fs.mkdirSync(cacheDir, { recursive: true });
+  }
+  // 将目录路径转换为相对路径，避免不同系统的路径分隔符问题
+  const relativePath = path.relative('/', directoryPath).replace(/[\\/:]/g, '_');
+  return path.join(cacheDir, `${relativePath}_${CACHE_FILE_NAME}`);
 }
 
 // 确保缓存目录存在
 function ensureCacheDirectory() {
-  const cacheDir = path.join(app.getPath('cache'), 'iconfinder');
+  const cacheDir = path.join(app.getPath('cache'), 'iconfinder', 'image-cache');
   if (!fs.existsSync(cacheDir)) {
     fs.mkdirSync(cacheDir, { recursive: true });
   }
