@@ -1,10 +1,8 @@
 const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('electron', {
   getFileSize: (filePath) => {
-    console.log(`getFileSize Attempting to get file size for ${filePath}`);
     return new Promise((resolve, reject) => {
       ipcRenderer.once('file-size-response', (event, size) => {
-        console.log(`File size response received for ${filePath}: ${size}`);
         if (size.startsWith('Error:')) {
           console.error(`Error getting file size for ${filePath}: ${size}`);
           reject(new Error(size));
@@ -17,10 +15,8 @@ contextBridge.exposeInMainWorld('electron', {
     });
   },
   getImageDimensions: (filePath) => {
-    console.log(`getImageDimensions Attempting to get image dimensions for ${filePath}`);
     return new Promise((resolve, reject) => {
       ipcRenderer.once('image-dimensions-response', (event, dimensions) => {
-        console.log(`Image dimensions response received for ${filePath}: ${dimensions}`);
         if (dimensions.startsWith('Error:')) {
           console.error(`Error getting image dimensions for ${filePath}: ${dimensions}`);
           reject(new Error(dimensions));
