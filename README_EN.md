@@ -1,68 +1,77 @@
 # Icon Finder
+English | [简体中文](./README.md)
 
-An intelligent icon/image search tool based on image similarity, supporting smart matching of shape, color, and rounded corner features.
+An intelligent icon/image search tool based on image similarity, supporting shape and color matching to help you quickly find similar images among large collections.
+![Screenshot](./screenshots/screenshot.png)
 
-## Key Features
+## Main Features
 
-### 1. Intelligent Search
-- Color similarity matching
-- Shape similarity matching (including size, aspect ratio, orientation)
-- Rounded corner feature detection
-- Adjustable similarity threshold for precise result control
-
-### 2. File Support
-- Supports major image formats: JPG, JPEG, PNG, GIF, BMP, WebP, SVG
-- Drag and drop upload
-- File preview support
-
-### 3. Directory Management
-- Search directory selection
-- Directory filter display
-- Include/Exclude directory rules (using regular expressions)
-- Cross-platform path handling
-
-### 4. Caching Mechanism
-- Automatic image feature caching
-- Persistent storage support
-- Cache rebuilding support
-- Search performance optimization
-
-### 5. Search Results
-- Real-time preview
-- Detailed file information display
-- Detailed similarity information display (color similarity, shape similarity)
+### 1. Image Search
+- Support drag and drop or file selection for searching
+- Similarity calculation based on color and shape
+- Real-time preview of search results
+- Adjustable similarity threshold for result filtering
 - Directory-based result filtering
-- Double-click to copy filename
+- Support for major image formats: JPG, JPEG, PNG, GIF, BMP, WebP, SVG
 
-## Usage
+### 2. Directory Management
+- Browse and select directories for searching
+- Automatic scanning of all image files in directories
+- Support for include/exclude path filtering with regular expressions
+- Cache directory structure for improved subsequent search speed
 
-### Basic Operations
-1. Click "Browse" to select the search directory
-2. Drag and drop or select the target image
-3. Adjust similarity threshold (0-1) to control matching precision
-4. View search results, click for detailed preview
+### 3. Image Caching
+- Automatic caching of image features for faster searching
+- Support for cache rebuilding
+- Display of cache building progress
+- Intelligent cache status detection to avoid redundant processing
 
-### Advanced Settings
-Click "Settings" for advanced configuration:
-- Include Paths: Use regex to specify paths to include, e.g., `\.png$|\.jpg$`
-- Exclude Paths: Use regex to specify paths to exclude, e.g., `thumbnails|temp`
-- Detailed Info: Enable to view detailed similarity data
+### 4. Result Display
+- Grid-style display of search results
+- Show image preview, filename, and similarity
+- Support for viewing detailed image information (dimensions, size, etc.)
+- Optional display of color and shape similarity details
+- Support for enlarged image preview
 
-### Cache Management
-- Cache is automatically built on first directory scan
-- Click "Rebuild Cache" to rebuild directory cache
-- Cache file is stored as `.image-cache.json` in the directory
+### 5. Additional Features
+- Chinese and English interface language support
+- Automatic saving of user settings and preferences
+- Support for dark/light theme (follows system)
+- File drag and drop operation support
+- Double-click to copy filename functionality
 
-### Result Filtering
-- Use directory dropdown to filter results by directory
-- Adjust similarity threshold for real-time result filtering
-- Reset button to clear current search state
+## Usage Guide
+
+1. Select Directory
+   - Click "Browse" button to select an image directory
+   - First-time directory selection will automatically build image feature cache
+   - Configure directory filtering rules in settings
+
+2. Search Images
+   - Drag image to upload area or click "Select File"
+   - Wait for search completion, results will be displayed sorted by similarity
+   - Use similarity slider to adjust matching precision
+   - Use directory dropdown to filter results from specific directories
+
+3. View Results
+   - Click image to view detailed information
+   - Enable "Show Detailed Similarity Information" in settings for more details
+   - Click preview image to enlarge
+   - Double-click filename to copy
+
+4. Settings Options
+   - Language Switch: Support for Chinese and English interface
+   - Include Paths: Set rules for included file paths
+   - Exclude Paths: Set rules for excluded file paths
+   - Detailed Information: Enable/disable detailed similarity information display
 
 ## Technical Features
-- Efficient image processing using Sharp
-- SIMD optimization support
-- Cross-platform support (Windows, macOS, Linux)
-- Built with Electron + React
+- Efficient image processing using Sharp library
+- Implementation of similarity calculation based on color histogram and shape features
+- Multi-level caching strategy for performance improvement
+- Efficient searching for large-scale image libraries
+- Front-end and back-end separation using Electron IPC communication
+- Algorithm details available in [README_ALGORITHM.md](./README_ALGORITHM.md)
 
 ## Installation and Running
 
@@ -73,23 +82,16 @@ npm install
 
 # Start development server
 npm start
-```
 
-### Production Environment
-```bash
-# Build application
-npm run build
-
-# Package application
-npm run build:electron
-
-# Platform-specific packaging
+# Build for specific platforms
 npm run build:mac    # macOS
 npm run build:win    # Windows
-```
+``` 
 
-## System Requirements
-- Node.js 14.0 or higher
-- Windows 10/11, macOS 10.13+, or Linux
-- 2GB+ available memory
-- 500MB+ available disk space 
+## Contributing
+
+Pull Requests and Issues are welcome.
+
+## License
+
+[MIT License](./LICENSE) 

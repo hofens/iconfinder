@@ -26,9 +26,7 @@
     "build": "react-scripts build",
     "build:electron": "npm run build && electron-builder -mw",
     "build:mac": "npm run build && electron-builder --mac",
-    "build:win": "npm run build && electron-builder --win",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "build:win": "npm run build && electron-builder --win"
   },
   "build": {
     "appId": "com.hofens.iconfinder",
@@ -52,7 +50,7 @@
           ]
         }
       ],
-      "icon": "public/logo192.png",
+      "icon": "public/logo512.png",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
@@ -81,13 +79,13 @@
         "nsis",
         "portable"
       ],
-      "icon": "public/logo192.png"
+      "icon": "public/logo512.png"
     },
     "linux": {
       "target": [
         "AppImage"
       ],
-      "icon": "public/logo192.png"
+      "icon": "public/logo512.png"
     },
     "directories": {
       "buildResources": "public",
