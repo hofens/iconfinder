@@ -1,32 +1,10 @@
 const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('electron', {
   getFileSize: (filePath) => {
-    return new Promise((resolve, reject) => {
-      ipcRenderer.once('file-size-response', (event, size) => {
-        if (size.startsWith('Error:')) {
-          console.error(`Error getting file size for ${filePath}: ${size}`);
-          reject(new Error(size));
-        } else {
-          console.log(`File size for ${filePath}: ${size}`);
-          resolve(size);
-        }
-      });
-      ipcRenderer.send('get-file-size', filePath);
-    });
+    return ipcRenderer.invoke('get-file-size', filePath);
   },
   getImageDimensions: (filePath) => {
-    return new Promise((resolve, reject) => {
-      ipcRenderer.once('image-dimensions-response', (event, dimensions) => {
-        if (dimensions.startsWith('Error:')) {
-          console.error(`Error getting image dimensions for ${filePath}: ${dimensions}`);
-          reject(new Error(dimensions));
-        } else {
-          console.log(`Image dimensions for ${filePath}: ${dimensions}`);
-          resolve(dimensions);
-        }
-      });
-      ipcRenderer.send('get-image-dimensions', filePath);
-    });
+    return ipcRenderer.invoke('get-image-dimensions', filePath);
   },
   calculateImageSimilarity: async (sourcePath, targetPath, weights) => {
     try {

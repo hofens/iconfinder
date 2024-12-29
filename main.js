@@ -371,43 +371,44 @@ ipcMain.handle('rebuild-cache', async (event, directoryPath) => {
   return await rebuildCache(directoryPath);
 });
 
-// 修改现有的文件大小和尺寸获取处理器以使用缓存
-ipcMain.on('get-file-size', async (event, filePath) => {
+// 修改为async/await写法
+ipcMain.handle('get-file-size', async (event, filePath) => {
   const absolutePath = normalizePath(filePath);
+  console.log(`absolutePath: ${absolutePath}`);
+  console.log(`filePath: ${filePath}`);
   try {
     if (imageCache.has(absolutePath)) {
-      event.reply('file-size-response', imageCache.get(absolutePath).size);
+      const size = imageCache.get(absolutePath).size;
+      console.log(`Using cached size: ${size}`);
+      return size;
     } else {
       const stats = await fsPromises.stat(absolutePath);
       const size = `${(stats.size / 1024).toFixed(2)} KB`;
-      event.reply('file-size-response', size);
+      console.log(`Calculated size: ${size}`);
+      return size;
     }
   } catch (err) {
     console.error(`Error accessing file: ${err.message}`);
-    event.reply('file-size-response', `Error: ${err.message}`);
+    throw err;
   }
 });
 
-ipcMain.on('get-image-dimensions', (event, filePath) => {
+ipcMain.handle('get-image-dimensions', async (event, filePath) => {
   const absolutePath = normalizePath(filePath);
   try {
     if (imageCache.has(absolutePath)) {
-      event.reply('image-dimensions-response', imageCache.get(absolutePath).dimensions);
+      const dimensions = imageCache.get(absolutePath).dimensions;
+      console.log(`Using cached dimensions: ${dimensions}`);
+      return dimensions;
     } else {
-      sharp(absolutePath)
-        .metadata()
-        .then(metadata => {
-          const dimensions = `${metadata.width}x${metadata.height}`;
-          event.reply('image-dimensions-response', dimensions);
-        })
-        .catch(err => {
-          console.error(`Error accessing image dimensions: ${err.message}`);
-          event.reply('image-dimensions-response', `Error: ${err.message}`);
-        });
+      const metadata = await sharp(absolutePath).metadata();
+      const dimensions = `${metadata.width}x${metadata.height}`;
+      console.log(`Calculated dimensions: ${dimensions}`);
+      return dimensions;
     }
   } catch (err) {
     console.error(`Error accessing image dimensions: ${err.message}`);
-    event.reply('image-dimensions-response', `Error: ${err.message}`);
+    throw err;
   }
 });
 

@@ -379,7 +379,6 @@ function App() {
 
           return fileInfo;
         }));
-
         setDirectoryStructure(structure);
         
         // 尝试保存目录结构
@@ -602,38 +601,43 @@ function App() {
     
     try {
       if (window.electron) {
-        // 获取最新的文件信息
-        const stats = await window.electron.getFileSize(result.path);
-        const dimensions = await window.electron.getImageDimensions(result.path);
-                const similarityResult = await window.electron.calculateImageSimilarity(
-          searchFile.path,
-          result.path,
-          { 
-            colorWeight: 0.7,  // 使用固定权重
-            shapeWeight: 0.3,  // 使用固定权重
-            threshold: similarity 
-          }
-        );
-        
-        const normalizedColorWeight = 0.7 / (0.7 + 0.3);
-        const normalizedShapeWeight = 0.3 / (0.7 + 0.3);
-        
-        const totalSimilarity = (
-          similarityResult.colorSimilarity * normalizedColorWeight + 
-          similarityResult.shapeSimilarity * normalizedShapeWeight
-        );
-        
-        searchResults[index] = {
-          ...result,
-          size: stats,  // 使用时获取的文件大小
-          dimensions: dimensions,  // 使用实时获取的图片尺寸
-          colorSimilarity: similarityResult.colorSimilarity.toFixed(4),
-          shapeSimilarity: similarityResult.shapeSimilarity.toFixed(4),
-          totalSimilarity: totalSimilarity.toFixed(4),
-          similarity: totalSimilarity.toFixed(4)
-        };
-        
-        setSearchResults([...searchResults]);
+        // 从缓存中查找文件信息
+        const cachedFile = directoryStructure.find(file => file.path === result.path);
+        console.log(cachedFile);
+        if (cachedFile) {
+          // 使用缓存的文件信息
+          const similarityResult = await window.electron.calculateImageSimilarity(
+            searchFile.path,
+            result.path,
+            { 
+              colorWeight: 0.7,
+              shapeWeight: 0.3,
+              threshold: similarity 
+            }
+          );
+          
+          const normalizedColorWeight = 0.7 / (0.7 + 0.3);
+          const normalizedShapeWeight = 0.3 / (0.7 + 0.3);
+          
+          const totalSimilarity = (
+            similarityResult.colorSimilarity * normalizedColorWeight + 
+            similarityResult.shapeSimilarity * normalizedShapeWeight
+          );
+          
+          searchResults[index] = {
+            ...result,
+            size: cachedFile.size,  // 使用缓存的文件大小
+            dimensions: cachedFile.dimensions,  // 使用缓存的图片尺寸
+            colorSimilarity: similarityResult.colorSimilarity.toFixed(4),
+            shapeSimilarity: similarityResult.shapeSimilarity.toFixed(4),
+            totalSimilarity: totalSimilarity.toFixed(4),
+            similarity: totalSimilarity.toFixed(4)
+          };
+          
+          setSearchResults([...searchResults]);
+        } else {
+          console.warn('File not found in cache:', result.path);
+        }
       }
     } catch (error) {
       console.error('Error updating result details:', error);
