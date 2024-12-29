@@ -69,4 +69,4 @@ jobs:
             dist/*.dmg
             dist/latest*.yml
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+          token: ${{ secrets.GITHUB_TOKEN }} 
