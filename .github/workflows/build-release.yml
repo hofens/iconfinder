@@ -32,7 +32,7 @@ jobs:
       - name: Build Electron App
         env:
           CI: false  # 防止警告被视为错误
-          token: ${{ secrets.GITHUB_TOKEN }} 
+          GH_TOKEN: ${{ secrets.ICON_FINDER_TOKEN }} 
         run: |
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
             npm run build:win
@@ -49,6 +49,8 @@ jobs:
           path: |
             dist/*.exe
             dist/latest.yml
+        env:
+          GH_TOKEN: ${{ secrets.ICON_FINDER_TOKEN }} 
 
       - name: Upload macOS Artifacts
         if: matrix.os == 'macos-latest'
@@ -58,6 +60,8 @@ jobs:
           path: |
             dist/*.dmg
             dist/latest-mac.yml
+        env:
+          GH_TOKEN: ${{ secrets.ICON_FINDER_TOKEN }} 
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
@@ -70,4 +74,4 @@ jobs:
             dist/*.dmg
             dist/latest*.yml
         env:
-          token: ${{ secrets.GITHUB_TOKEN }} 
+          GH_TOKEN: ${{ secrets.ICON_FINDER_TOKEN }} 
