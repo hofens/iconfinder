@@ -13,6 +13,7 @@ sharp.queue.on('error', function(err) {
 });
 
 function normalizePath(filePath) {
+  console.log(`normalizePath filePath: ${filePath}`);
   if (process.platform === 'win32') {
     // Windows
     return path.normalize(filePath).replace(/\//g, '\\');
