@@ -23,10 +23,12 @@
     "start": "concurrently \"npm run start:react\" \"npm run start:electron\"",
     "start:react": "cross-env BROWSER=none react-scripts start",
     "start:electron": "wait-on tcp:3000 && cross-env NODE_ENV=development electron .",
+    "start:mac": "npm run build && electron .",
     "build": "react-scripts build",
     "build:electron": "npm run build && electron-builder -mw",
     "build:mac": "npm run build && electron-builder --mac",
-    "build:win": "npm run build && electron-builder --win"
+    "build:win": "npm run build && electron-builder --win",
+    "rebuild": "rm -rf node_modules && npm install && npm run build:mac"
   },
   "build": {
     "appId": "com.hofens.iconfinder",
@@ -101,7 +103,11 @@
     "extraMetadata": {
       "main": "main.js"
     },
-    "asar": true
+    "asar": true,
+    "asarUnpack": [
+      "**/node_modules/sharp/**/*",
+      "**/node_modules/@img/**/*"
+    ]
   },
   "eslintConfig": {
     "extends": [
@@ -122,10 +128,10 @@
     ]
   },
   "devDependencies": {
-    "concurrently": "^8.2.0",
+    "concurrently": "8.2.0",
     "cross-env": "7.0.3",
-    "electron": "25.9.8",
-    "electron-builder": "24.6.0",
+    "electron": "33.0.0",
+    "electron-builder": "25.1.8",
     "wait-on": "7.2.0"
   }
 }
