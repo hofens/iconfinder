@@ -301,6 +301,7 @@ function App() {
         setResultDirFilter('');
         
         setStatus('正在扫描目录...');
+        
         // 创建包含和排除的正则表达式
         let includeRegex = null;
         let excludeRegex = null;
@@ -324,11 +325,6 @@ function App() {
                          /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i.test(file.name);
           
           if (!isImage) return false;
-          if (file.path == undefined) {
-            console.log(`file.path is undefined`);
-            // 跳过
-            return false;
-          }
           
           // 获取相对路径
           const relativePath = window.electron ? 
