@@ -325,7 +325,8 @@ function App() {
                          /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i.test(file.name);
           
           if (!isImage) return false;
-          
+
+          console.log(`file.name ${file.name} , ${file.path}`)
           // 获取相对路径
           const relativePath = window.electron ? 
             getRelativePath(file.path) : 
