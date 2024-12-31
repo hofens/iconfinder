@@ -103,11 +103,7 @@
     "extraMetadata": {
       "main": "main.js"
     },
-    "asar": true,
-    "asarUnpack": [
-      "**/node_modules/sharp/**/*",
-      "**/node_modules/@img/**/*"
-    ]
+    "asar": true
   },
   "eslintConfig": {
     "extends": [
