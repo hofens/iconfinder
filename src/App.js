@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import './App.css';
-import { FaUpload, FaFolder, FaImage, FaCog } from 'react-icons/fa';
-import { locales } from './locales';
+import {FaCog, FaFolder, FaImage, FaUpload} from 'react-icons/fa';
+import {locales} from './locales';
 
 function App() {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -17,7 +17,6 @@ function App() {
   const [includePaths, setIncludePaths] = useState('');
   const [searchFile, setSearchFile] = useState(null);
   const [directoryStructure, setDirectoryStructure] = useState([]);
-  const [similarityTimer, setSimilarityTimer] = useState(null);
   const [showDetailedInfo, setShowDetailedInfo] = useState(false);
   const [resultDirFilter, setResultDirFilter] = useState('');
   const [availableDirs, setAvailableDirs] = useState([]);
@@ -107,7 +106,7 @@ function App() {
   };
 
   async function searchSimilarImages(file, forceRecalculate = false) {
-    if (!file || typeof file === 'object' && !file.name) {
+    if (!file || (typeof file === 'object' && !file.name)) {
       setStatus('无效的文件');
       return;
     }
@@ -117,9 +116,8 @@ function App() {
     
     // 过滤图片文件
     results = directoryStructure.filter(fileEntry => {
-      const isImage = fileEntry.type.startsWith('image/') || 
-                     /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i.test(fileEntry.name);
-      return isImage;
+      return fileEntry.type.startsWith('image/') ||
+          /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i.test(fileEntry.name);
     });
 
     try {
@@ -583,15 +581,6 @@ function App() {
     }
   };
 
-  // 组件卸载清理定器
-  useEffect(() => {
-    return () => {
-      if (similarityTimer) {
-        clearTimeout(similarityTimer);
-      }
-    };
-  }, [similarityTimer]);
-
   const handleResultClick = async (index) => {
     setSelectedResult(index);
     const result = searchResults[index];
@@ -742,6 +731,8 @@ function App() {
           setStatus(`缓存初始化完成，共处理 ${progress.total} 个文件`);
           setCacheProgress(null);
           setCacheInitialized(true);
+          break;
+        default:
           break;
       }
     };
