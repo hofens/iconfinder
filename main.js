@@ -3,6 +3,7 @@ const fs = require('fs');
 const fsPromises = require('fs').promises;
 const path = require('path');
 const sharp = require('sharp');
+const mime = require('mime-types');
 
 sharp.cache(false); // 禁用缓存以避免潜在的内存问题
 sharp.simd(true);   // 启用 SIMD 优化
