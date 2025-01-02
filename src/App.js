@@ -297,7 +297,9 @@ function App() {
         setSearchFile(null);
         setAvailableDirs([]);
         setResultDirFilter('');
-        
+        // 每次切换目录时重置缓存初始化状态
+        setCacheInitialized(false);
+            
         setStatus('正在扫描目录...');
         
         // 创建包含和排除的正则表达式
@@ -413,9 +415,7 @@ function App() {
         // 初始化图片缓存
         if (window.electron) {
           try {
-            // 每次切换目录时重置缓存初始化状态
-            setCacheInitialized(false);
-            
+
             // 检查当前目录的缓存文件是否存在
             const cacheExists = await window.electron.checkCacheExists(directoryPath);
             if (!cacheExists) {
