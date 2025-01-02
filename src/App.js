@@ -421,6 +421,7 @@ function App() {
             if (!cacheExists) {
               setStatus('正在初始化图片缓存...');
               await window.electron.initializeImageCache(directoryPath);
+              setCacheInitialized(true);
             } else {
               setStatus(`目录扫描完成，共发现 ${files.length} 个文件，其中含 ${imageFiles.length} 个图片文件`);
               setCacheInitialized(true);
@@ -428,6 +429,7 @@ function App() {
           } catch (error) {
             console.error('Error initializing image cache:', error);
             setStatus(`目录扫描完成，但缓存初始化失败: ${error.message}`);
+            setCacheInitialized(false);
           }
         } else {
           setStatus(`目录扫描完成，共发现 ${files.length} 个文件，其中含 ${imageFiles.length} 个图片文件`);
