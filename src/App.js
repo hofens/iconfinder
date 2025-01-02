@@ -486,7 +486,7 @@ function App() {
         // 两个条件都满足才返回true
         return meetsSimilarity && meetsDirectory;
       });
-    
+
     setSearchResults(filteredResults);
     setStatus(`找到 ${filteredResults.length} 个相似图片`);
   };
@@ -817,8 +817,23 @@ function App() {
                 <button onClick={resetPreview} disabled={!searchPath.trim()} title={getText('directory.reset')}>
                   {getText('directory.reset')}
                 </button>
-                <button onClick={rebuildCache} disabled={!searchPath.trim()} title={getText('directory.rebuildCache')}>
-                  {getText('directory.rebuildCache')}
+                <button onClick={rebuildCache} disabled={!searchPath.trim()} title={getText('directory.build')}>
+                  {getText('directory.build')}
+                </button>
+                <button onClick={async () => {
+                  if (window.electron) {
+                    try {
+                      setStatus('正在清除缓存...');
+                      await window.electron.clearImageCache(searchPath);
+                      setStatus('缓存已清除');
+                      setCacheInitialized(false);
+                    } catch (error) {
+                      console.error('Error clearing cache:', error);
+                      setStatus(`清除缓存失败: ${error.message}`);
+                    }
+                  }
+                }} disabled={!searchPath.trim()} title={getText('directory.clear')}>
+                  {getText('directory.clear')}
                 </button>
                 <button className="settings-btn" onClick={() => setShowSettings(true)} title={getText('directory.settings')}>
                   <FaCog /> {getText('directory.settings')}

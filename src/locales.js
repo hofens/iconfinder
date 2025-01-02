@@ -15,6 +15,8 @@ export const locales = {
       research: '重新搜索',
       reset: '重置',
       rebuildCache: '重建缓存',
+      build: '构建',
+      clear: '清除',
       settings: '设置'
     },
     upload: {
@@ -65,6 +67,8 @@ export const locales = {
       research: 'Research',
       reset: 'Reset',
       rebuildCache: 'Rebuild Cache',
+      build: 'Build',
+      clear: 'Clear',
       settings: 'Settings'
     },
     upload: {

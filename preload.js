@@ -31,6 +31,14 @@ contextBridge.exposeInMainWorld('electron', {
       throw error;
     }
   },
+  clearImageCache: async (directoryPath) => {
+    try {
+      return await ipcRenderer.invoke('clear-image-cache', directoryPath);
+    } catch (error) {
+      console.error('Error clearing cache:', error);
+      throw error;
+    }
+  },
   initializeImageCache: async (directoryPath) => {
     try {
       return new Promise((resolve, reject) => {
@@ -79,4 +87,3 @@ window.addEventListener('DOMContentLoaded', () => {
     replaceText(`${dependency}-version`, process.versions[dependency]);
   }
 }); 
-

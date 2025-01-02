@@ -361,6 +361,27 @@ async function rebuildCache(directoryPath) {
   }
 }
 
+// 添加清除缓存的函数
+async function clearImageCache(directoryPath) {
+  try {
+    const cacheFilePath = getCacheFilePath(directoryPath);
+    
+    // 检查缓存文件是否存在
+    if (fs.existsSync(cacheFilePath)) {
+      // 删除缓存文件
+      await fsPromises.unlink(cacheFilePath);
+    }
+    
+    // 清除内存中的缓存
+    imageCache.clear();
+    
+    return true;
+  } catch (error) {
+    console.error('Error clearing cache:', error);
+    throw error;
+  }
+}
+
 // 添加新的 IPC 处理器
 ipcMain.handle('initialize-image-cache', async (event, directoryPath) => {
   return await initializeImageCache(directoryPath);
@@ -369,6 +390,11 @@ ipcMain.handle('initialize-image-cache', async (event, directoryPath) => {
 // 添加重建缓存的 IPC 处理器
 ipcMain.handle('rebuild-cache', async (event, directoryPath) => {
   return await rebuildCache(directoryPath);
+});
+
+// 添加清除缓存的 IPC 处理器
+ipcMain.handle('clear-image-cache', async (event, directoryPath) => {
+  return await clearImageCache(directoryPath);
 });
 
 // 修改为async/await写法
