@@ -283,7 +283,119 @@ function App() {
         // 每次切换目录时重置缓存初始化状态
         setCacheInitialized(false);
             
-        await handleDirectoryScan(files);
+        setStatus('正在扫描目录...');
+    
+        // 创建包含和排除的正则表达式
+        let includeRegex = null;
+        let excludeRegex = null;
+        try {
+          if (includePaths.trim()) {
+            includeRegex = new RegExp(includePaths);
+          }
+          if (excludePaths.trim()) {
+            excludeRegex = new RegExp(excludePaths);
+          }
+        } catch (error) {
+          console.error('正则表达式错误:', error);
+          setStatus('正则表达式格式错误，请检查设置');
+          return;
+        }
+        
+        // 过滤出图片文件，并应用包含/排除规则
+        const imageFiles = files.filter(file => {
+          // 首先检查是否为图片文件
+          const isImage = file.type.startsWith('image/') || 
+                        /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i.test(file.name);
+          
+          if (!isImage) return false;
+
+          // 获取相对路径
+          const relativePath = window.electron ? 
+            getRelativePath(file.path) : 
+            file.webkitRelativePath;
+            
+          // 检查排除规则
+          if (excludeRegex && excludeRegex.test(relativePath)) {
+            return false;
+          }
+          
+          // 检查包含规则
+          if (includeRegex && !includeRegex.test(relativePath)) {
+            return false;
+          }
+          
+          return true;
+        });
+        
+        // 为每个文件创建详细信息
+        const structure = await Promise.all(imageFiles.map(async file => {
+          let fileInfo = {
+            name: file.name,
+            path: window.electron ? file.path : (file.webkitRelativePath || file.name),
+            type: file.type,
+          };
+
+          try {
+            if (window.electron) {
+              // Electron环境：获取文件信息
+              setStatus(`正在处理: ${file.name}`);
+              fileInfo.size = await window.electron.getFileSize(file.path);
+              fileInfo.dimensions = await window.electron.getImageDimensions(file.path);
+              fileInfo.preview = await window.electron.getImagePreview(file.path);
+            } else {
+              // Web环境：处理文件信息
+              fileInfo.size = `${(file.size / 1024).toFixed(2)} KB`;
+              fileInfo.blob = file.slice();
+              
+              // 取图片尺寸
+              fileInfo.dimensions = await new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                  resolve(`${img.naturalWidth}x${img.naturalHeight}`);
+                  URL.revokeObjectURL(img.src);
+                };
+                img.onerror = () => {
+                  resolve('Unknown dimensions');
+                  URL.revokeObjectURL(img.src);
+                };
+                img.src = URL.createObjectURL(file);
+              });
+
+              // 获取预览图
+              fileInfo.preview = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = () => resolve('');
+                reader.readAsDataURL(file);
+              });
+            }
+          } catch (error) {
+            console.error(`Error processing file ${file.name}:`, error);
+            fileInfo.size = 'Unknown size';
+            fileInfo.dimensions = 'Unknown dimensions';
+            fileInfo.preview = '';
+          }
+
+          return fileInfo;
+        }));
+        setDirectoryStructure(structure);
+        
+        // 尝试保存目录结构
+        if (!saveDirectoryStructure(structure)) {
+          setStatus('警告：目录结构过大，无法保存到本地存储。重启应用后需要重新扫描目录。');
+        }
+        
+        // 获取选择的目录路径
+        const firstFile = files[0];
+        const directoryPath = window.electron 
+          ? firstFile.path.substring(0, firstFile.path.lastIndexOf(firstFile.name))
+          : firstFile.webkitRelativePath.split('/')[0];
+        
+        // 更新搜索路径
+        setSearchPath(directoryPath);
+        
+        // 初始化图片缓存
+        await initializeImageCache(directoryPath, imageFiles);
       } else {
         setStatus('未选择任何目录');
         setSearchPath('');
@@ -303,121 +415,6 @@ function App() {
     input.click();
   };
 
-  const handleDirectoryScan = async (files) => {
-    setStatus('正在扫描目录...');
-    
-    // 创建包含和排除的正则表达式
-    let includeRegex = null;
-    let excludeRegex = null;
-    try {
-      if (includePaths.trim()) {
-        includeRegex = new RegExp(includePaths);
-      }
-      if (excludePaths.trim()) {
-        excludeRegex = new RegExp(excludePaths);
-      }
-    } catch (error) {
-      console.error('正则表达式错误:', error);
-      setStatus('正则表达式格式错误，请检查设置');
-      return;
-    }
-    
-    // 过滤出图片文件，并应用包含/排除规则
-    const imageFiles = files.filter(file => {
-      // 首先检查是否为图片文件
-      const isImage = file.type.startsWith('image/') || 
-                     /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i.test(file.name);
-      
-      if (!isImage) return false;
-
-      // 获取相对路径
-      const relativePath = window.electron ? 
-        getRelativePath(file.path) : 
-        file.webkitRelativePath;
-        
-      // 检查排除规则
-      if (excludeRegex && excludeRegex.test(relativePath)) {
-        return false;
-      }
-      
-      // 检查包含规则
-      if (includeRegex && !includeRegex.test(relativePath)) {
-        return false;
-      }
-      
-      return true;
-    });
-    
-    // 为每个文件创建详细信息
-    const structure = await Promise.all(imageFiles.map(async file => {
-      let fileInfo = {
-        name: file.name,
-        path: window.electron ? file.path : (file.webkitRelativePath || file.name),
-        type: file.type,
-      };
-
-      try {
-        if (window.electron) {
-          // Electron环境：获取文件信息
-          setStatus(`正在处理: ${file.name}`);
-          fileInfo.size = await window.electron.getFileSize(file.path);
-          fileInfo.dimensions = await window.electron.getImageDimensions(file.path);
-          fileInfo.preview = await window.electron.getImagePreview(file.path);
-        } else {
-          // Web环境：处理文件信息
-          fileInfo.size = `${(file.size / 1024).toFixed(2)} KB`;
-          fileInfo.blob = file.slice();
-          
-          // 取图片尺寸
-          fileInfo.dimensions = await new Promise((resolve) => {
-            const img = new Image();
-            img.onload = () => {
-              resolve(`${img.naturalWidth}x${img.naturalHeight}`);
-              URL.revokeObjectURL(img.src);
-            };
-            img.onerror = () => {
-              resolve('Unknown dimensions');
-              URL.revokeObjectURL(img.src);
-            };
-            img.src = URL.createObjectURL(file);
-          });
-
-          // 获取预览图
-          fileInfo.preview = await new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = () => resolve('');
-            reader.readAsDataURL(file);
-          });
-        }
-      } catch (error) {
-        console.error(`Error processing file ${file.name}:`, error);
-        fileInfo.size = 'Unknown size';
-        fileInfo.dimensions = 'Unknown dimensions';
-        fileInfo.preview = '';
-      }
-
-      return fileInfo;
-    }));
-    setDirectoryStructure(structure);
-    
-    // 尝试保存目录结构
-    if (!saveDirectoryStructure(structure)) {
-      setStatus('警告：目录结构过大，无法保存到本地存储。重启应用后需要重新扫描目录。');
-    }
-    
-    // 获取选择的目录路径
-    const firstFile = files[0];
-    const directoryPath = window.electron 
-      ? firstFile.path.substring(0, firstFile.path.lastIndexOf(firstFile.name))
-      : firstFile.webkitRelativePath.split('/')[0];
-    
-    // 更新搜索路径
-    setSearchPath(directoryPath);
-    
-    // 初始化图片缓存
-    await initializeImageCache(directoryPath, imageFiles);
-  };
 
   const initializeImageCache = async (directoryPath, imageFiles) => {
     if (window.electron) {
