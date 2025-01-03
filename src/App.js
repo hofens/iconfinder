@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import './App.css';
-import {FaCog, FaFolder, FaImage, FaUpload} from 'react-icons/fa';
+import {FaCog, FaFolder, FaImage, FaUpload, FaSearch, FaInfoCircle, FaHome, FaQuestionCircle} from 'react-icons/fa';
 import {locales} from './locales';
 
 function App() {
@@ -25,6 +25,7 @@ function App() {
   const [showImagePreview, setShowImagePreview] = useState(false);
   const [previewImageUrl, setPreviewImageUrl] = useState(null);
   const [language, setLanguage] = useState('zh');
+  const [activeSection, setActiveSection] = useState('home');
 
   // Ensure ipcRenderer is available
 
@@ -776,219 +777,262 @@ function App() {
     setShowImagePreview(true);
   };
 
+  const renderSidebar = () => {
+    return (
+      <div className="sidebar">
+        <div className="sidebar-section">
+          <div 
+            className={`sidebar-item ${activeSection === 'home' ? 'active' : ''}`}
+            onClick={() => setActiveSection('home')}
+          >
+            <FaHome size={20} />
+            <span className="tooltip">首页</span>
+          </div>
+          <div 
+            className={`sidebar-item ${activeSection === 'search' ? 'active' : ''}`}
+            onClick={() => setActiveSection('search')}
+          >
+            <FaSearch size={20} />
+            <span className="tooltip">搜索</span>
+          </div>
+        </div>
+
+        <div className="sidebar-section" style={{ marginTop: 'auto' }}>
+          <div 
+            className={`sidebar-item ${activeSection === 'settings' ? 'active' : ''}`}
+            onClick={() => setActiveSection('settings')}
+          >
+            <FaCog size={20} />
+            <span className="tooltip">设置</span>
+          </div>
+          <div 
+            className={`sidebar-item ${activeSection === 'help' ? 'active' : ''}`}
+            onClick={() => setActiveSection('help')}
+          >
+            <FaQuestionCircle size={20} />
+            <span className="tooltip">帮助</span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="App">
-      <div className="container" style={{ display: 'flex' }}>
-        <div className="main-content" style={{ flex: 1 }}>
-          <div className="container">
-            <div className="section directory-section">
-              <div className="section-header">
-                <div className="header-left">
-                  <FaFolder /> {getText('directory.title')}
-                </div>
-              </div>
-              <div className="directory-input">
-                <input 
-                  type="text" 
-                  value={searchPath}
-                  onChange={(e) => {
-                    setSearchPath(e.target.value);
-                    if (!e.target.value.trim()) {
-                      setDirectoryStructure([]);
-                      localStorage.removeItem('directoryStructure');
-                    }
-                  }}
-                  placeholder={getText('directory.placeholder')}
-                />
-                <button className="browse-btn" onClick={handleBrowseDirectory} title={getText('directory.browse')}>{getText('directory.browse')}</button>
-                <button onClick={handleSearch} disabled={!searchPath.trim()} title={getText('directory.research')}>{getText('directory.research')}</button>
-                <button onClick={resetPreview} disabled={!searchPath.trim()} title={getText('directory.reset')}>
-                  {getText('directory.reset')}
-                </button>
-                <button onClick={buildCache} disabled={!searchPath.trim()} title={getText('directory.build')}>
-                  {getText('directory.build')}
-                </button>
-                <button onClick={async () => {
-                  if (window.electron) {
-                    try {
-                      setStatus('正在清除缓存...');
-                      await window.electron.clearImageCache(searchPath);
-                      setStatus('缓存已清除');
-                      setCacheInitialized(false);
-                    } catch (error) {
-                      console.error('Error clearing cache:', error);
-                      setStatus(`清除缓存失败: ${error.message}`);
-                    }
-                  }
-                }} disabled={!searchPath.trim()} title={getText('directory.clear')}>
-                  {getText('directory.clear')}
-                </button>
-                <button className="settings-btn" onClick={() => setShowSettings(true)} title={getText('directory.settings')}>
-                  <FaCog /> {getText('directory.settings')}
-                </button>
-              </div>
-            </div>
-
-            <div className="section upload-section">
-              <div className="upload-container">
-                <div 
-                  className={`upload-area ${!searchPath.trim() ? 'disabled' : ''}`}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    if (searchPath.trim()) {
-                      handleDrop(e);
-                    }
-                  }}
-                  onDragOver={handleDragOver}
-                >
-                  <div className="upload-placeholder">
-                    <FaUpload size={40} />
-                    <p>{searchPath.trim() ? getText('upload.dragDrop') : getText('upload.selectDirectory')}</p>
-                    <p>{getText('upload.or')}</p>
-                    <input
-                      type="file"
-                      accept="image/*,.jpg,.jpeg,.png,.gif,.bmp,.webp,.svg"
-                      onChange={handleFileSelect}
-                      id="file-input"
-                      style={{display: 'none'}}
-                      disabled={!searchPath.trim()}
-                    />
-                    <label 
-                      htmlFor="file-input" 
-                      className={`file-input-label ${!searchPath.trim() ? 'disabled' : ''}`}
-                      title={getText('upload.chooseFile')}
-                    >
-                      {getText('upload.chooseFile')}
-                    </label>
+      {renderSidebar()}
+      <div className="main-content">
+        <div className="container" style={{ display: 'flex' }}>
+          <div className="main-content" style={{ flex: 1 }}>
+            <div className="container">
+              <div className="section directory-section">
+                <div className="section-header">
+                  <div className="header-left">
+                    <FaFolder /> {getText('directory.title')}
                   </div>
                 </div>
-                <div className="preview-area">
-                  {previewUrl ? (
-                    <div className="preview-content">
-                      <img 
-                        src={previewUrl} 
-                        alt="Preview" 
-                        className="preview-image"
-                        onClick={() => handlePreviewClick(previewUrl)}
-                        style={{ cursor: 'pointer' }}
+                <div className="directory-input">
+                  <input 
+                    type="text" 
+                    value={searchPath}
+                    onChange={(e) => {
+                      setSearchPath(e.target.value);
+                      if (!e.target.value.trim()) {
+                        setDirectoryStructure([]);
+                        localStorage.removeItem('directoryStructure');
+                      }
+                    }}
+                    placeholder={getText('directory.placeholder')}
+                  />
+                  <button className="browse-btn" onClick={handleBrowseDirectory} title={getText('directory.browse')}>{getText('directory.browse')}</button>
+                  <button onClick={handleSearch} disabled={!searchPath.trim()} title={getText('directory.research')}>{getText('directory.research')}</button>
+                  <button onClick={resetPreview} disabled={!searchPath.trim()} title={getText('directory.reset')}>
+                    {getText('directory.reset')}
+                  </button>
+                  <button onClick={buildCache} disabled={!searchPath.trim()} title={getText('directory.build')}>
+                    {getText('directory.build')}
+                  </button>
+                  <button onClick={async () => {
+                    if (window.electron) {
+                      try {
+                        setStatus('正在清除缓存...');
+                        await window.electron.clearImageCache(searchPath);
+                        setStatus('缓存已清除');
+                        setCacheInitialized(false);
+                      } catch (error) {
+                        console.error('Error clearing cache:', error);
+                        setStatus(`清除缓存失败: ${error.message}`);
+                      }
+                    }
+                  }} disabled={!searchPath.trim()} title={getText('directory.clear')}>
+                    {getText('directory.clear')}
+                  </button>
+                  <button className="settings-btn" onClick={() => setShowSettings(true)} title={getText('directory.settings')}>
+                    <FaCog /> {getText('directory.settings')}
+                  </button>
+                </div>
+              </div>
+
+              <div className="section upload-section">
+                <div className="upload-container">
+                  <div 
+                    className={`upload-area ${!searchPath.trim() ? 'disabled' : ''}`}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      if (searchPath.trim()) {
+                        handleDrop(e);
+                      }
+                    }}
+                    onDragOver={handleDragOver}
+                  >
+                    <div className="upload-placeholder">
+                      <FaUpload size={40} />
+                      <p>{searchPath.trim() ? getText('upload.dragDrop') : getText('upload.selectDirectory')}</p>
+                      <p>{getText('upload.or')}</p>
+                      <input
+                        type="file"
+                        accept="image/*,.jpg,.jpeg,.png,.gif,.bmp,.webp,.svg"
+                        onChange={handleFileSelect}
+                        id="file-input"
+                        style={{display: 'none'}}
+                        disabled={!searchPath.trim()}
                       />
-                      <div className="preview-info">
-                        <p><span>{getText('preview.path')}:</span> {selectedFile?.path || selectedFile?.name}</p>
-                        <p><span>{getText('preview.size')}:</span> {(selectedFile?.size / 1024).toFixed(2)} KB</p>
-                        {selectedFile && (
-                          <p><span>{getText('preview.dimensions')}:</span> <span id="dimensions">Loading...</span></p>
-                        )}
-                      </div>
+                      <label 
+                        htmlFor="file-input" 
+                        className={`file-input-label ${!searchPath.trim() ? 'disabled' : ''}`}
+                        title={getText('upload.chooseFile')}
+                      >
+                        {getText('upload.chooseFile')}
+                      </label>
                     </div>
-                  ) : (
-                    <div className="preview-placeholder">
-                      <FaImage size={40} />
-                      <p>{getText('preview.title')}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="section results-section">
-              <div className="section-header">
-                <div className="header-left">
-                  <FaImage /> {getText('results.title')}
-                </div>
-                <div className="header-controls">
-                  <div className="control-item">
-                    <label>{getText('results.similarity')}:</label>
-                    <input
-                      type="range"
-                      min="0.0000"
-                      max="1.0000"
-                      step="0.0001"
-                      value={similarity}
-                      onChange={handleSimilarityChange}
-                    />
-                    <span>{Number(similarity).toFixed(4)}</span>
                   </div>
-                  {availableDirs.length > 0 && (
-                    <div className="control-item">
-                      <label>{getText('results.directory')}:</label>
-                      <select
-                        value={resultDirFilter}
-                        onChange={handleDirectoryFilterChange}
-                        className="directory-select"
-                      >
-                        <option value="">{getText('results.allDirectories')}</option>
-                        {availableDirs.map(dir => (
-                          <option key={dir} value={dir}>{dir || getText('results.rootDirectory')}</option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="results-container">
-                <div className="results-grid">
-                  {searchResults.length > 0 ? (
-                    searchResults.map((result, index) => (
-                      <div 
-                        key={index}
-                        className={`result-item ${selectedResult === index ? 'selected' : ''}`}
-                        onClick={() => handleResultClick(index)}
-                        onDoubleClick={() => handleDoubleClick(result.name)}
-                      >
-                        <div className="result-image">
-                          <img src={result.preview} alt={result.name} />
-                        </div>
-                        <div className="result-info">
-                          <div className="result-name" title={result.name}>{result.name}</div>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="no-results">
-                      <FaImage size={40} />
-                      <p>{getText('results.noResults')}</p>
-                      <p>{getText('results.uploadToStart')}</p>
-                    </div>
-                  )}
-                </div>
-                <div className="result-preview">
-                  {selectedResult !== null && searchResults[selectedResult] ? (
-                    <div className="selected-result-details">
-                      <div className='selected-result-details-div'>
+                  <div className="preview-area">
+                    {previewUrl ? (
+                      <div className="preview-content">
                         <img 
-                          src={searchResults[selectedResult].preview} 
-                          alt={searchResults[selectedResult].name}
-                          onClick={() => handlePreviewClick(searchResults[selectedResult].preview)}
+                          src={previewUrl} 
+                          alt="Preview" 
+                          className="preview-image"
+                          onClick={() => handlePreviewClick(previewUrl)}
                           style={{ cursor: 'pointer' }}
                         />
+                        <div className="preview-info">
+                          <p><span>{getText('preview.path')}:</span> {selectedFile?.path || selectedFile?.name}</p>
+                          <p><span>{getText('preview.size')}:</span> {(selectedFile?.size / 1024).toFixed(2)} KB</p>
+                          {selectedFile && (
+                            <p><span>{getText('preview.dimensions')}:</span> <span id="dimensions">Loading...</span></p>
+                          )}
+                        </div>
                       </div>
-                      <div className="details">
-                        <h3>{getText('results.fileDetails')}</h3>
-                        <p data-label={`${getText('preview.path')}:`}>{getRelativePath(searchResults[selectedResult].path)}</p>
-                        <p data-label={`${getText('preview.size')}:`}>{searchResults[selectedResult].size}</p>
-                        <p data-label={`${getText('preview.dimensions')}:`}>{searchResults[selectedResult].dimensions}</p>
-                        <p data-label={`${getText('results.totalSimilarity')}:`}>{searchResults[selectedResult].similarity}</p>
-                        {showDetailedInfo && (
-                          <>
-                            <p data-label={`${getText('results.colorSimilarity')}:`}>{searchResults[selectedResult].colorSimilarity}</p>
-                            <p data-label={`${getText('results.shapeSimilarity')}:`}>{searchResults[selectedResult].shapeSimilarity}</p>
-                          </>
-                        )}
+                    ) : (
+                      <div className="preview-placeholder">
+                        <FaImage size={40} />
+                        <p>{getText('preview.title')}</p>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="preview-placeholder">
-                      <FaImage size={40} />
-                      <p>{getText('results.selectToView')}</p>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="section status-section">
-              <div className="status-message" style={{ whiteSpace: 'pre-line' }}>
-                {status || getText('status.ready')}
+              <div className="section results-section">
+                <div className="section-header">
+                  <div className="header-left">
+                    <FaImage /> {getText('results.title')}
+                  </div>
+                  <div className="header-controls">
+                    <div className="control-item">
+                      <label>{getText('results.similarity')}:</label>
+                      <input
+                        type="range"
+                        min="0.0000"
+                        max="1.0000"
+                        step="0.0001"
+                        value={similarity}
+                        onChange={handleSimilarityChange}
+                      />
+                      <span>{Number(similarity).toFixed(4)}</span>
+                    </div>
+                    {availableDirs.length > 0 && (
+                      <div className="control-item">
+                        <label>{getText('results.directory')}:</label>
+                        <select
+                          value={resultDirFilter}
+                          onChange={handleDirectoryFilterChange}
+                          className="directory-select"
+                        >
+                          <option value="">{getText('results.allDirectories')}</option>
+                          {availableDirs.map(dir => (
+                            <option key={dir} value={dir}>{dir || getText('results.rootDirectory')}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="results-container">
+                  <div className="results-grid">
+                    {searchResults.length > 0 ? (
+                      searchResults.map((result, index) => (
+                        <div 
+                          key={index}
+                          className={`result-item ${selectedResult === index ? 'selected' : ''}`}
+                          onClick={() => handleResultClick(index)}
+                          onDoubleClick={() => handleDoubleClick(result.name)}
+                        >
+                          <div className="result-image">
+                            <img src={result.preview} alt={result.name} />
+                          </div>
+                          <div className="result-info">
+                            <div className="result-name" title={result.name}>{result.name}</div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="no-results">
+                        <FaImage size={40} />
+                        <p>{getText('results.noResults')}</p>
+                        <p>{getText('results.uploadToStart')}</p>
+                      </div>
+                    )}
+                  </div>
+                  <div className="result-preview">
+                    {selectedResult !== null && searchResults[selectedResult] ? (
+                      <div className="selected-result-details">
+                        <div className='selected-result-details-div'>
+                          <img 
+                            src={searchResults[selectedResult].preview} 
+                            alt={searchResults[selectedResult].name}
+                            onClick={() => handlePreviewClick(searchResults[selectedResult].preview)}
+                            style={{ cursor: 'pointer' }}
+                          />
+                        </div>
+                        <div className="details">
+                          <h3>{getText('results.fileDetails')}</h3>
+                          <p data-label={`${getText('preview.path')}:`}>{getRelativePath(searchResults[selectedResult].path)}</p>
+                          <p data-label={`${getText('preview.size')}:`}>{searchResults[selectedResult].size}</p>
+                          <p data-label={`${getText('preview.dimensions')}:`}>{searchResults[selectedResult].dimensions}</p>
+                          <p data-label={`${getText('results.totalSimilarity')}:`}>{searchResults[selectedResult].similarity}</p>
+                          {showDetailedInfo && (
+                            <>
+                              <p data-label={`${getText('results.colorSimilarity')}:`}>{searchResults[selectedResult].colorSimilarity}</p>
+                              <p data-label={`${getText('results.shapeSimilarity')}:`}>{searchResults[selectedResult].shapeSimilarity}</p>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="preview-placeholder">
+                        <FaImage size={40} />
+                        <p>{getText('results.selectToView')}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="section status-section">
+                <div className="status-message" style={{ whiteSpace: 'pre-line' }}>
+                  {status || getText('status.ready')}
+                </div>
               </div>
             </div>
           </div>
