@@ -12,6 +12,8 @@
     "url": "https://github.com/hofens/iconfinder/issues"
   },
   "dependencies": {
+    "antd": "5.22.7",
+    "anti": "0.1.7",
     "cra-template": "1.2.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
@@ -133,5 +135,8 @@
     "electron": "29.0.0",
     "electron-builder": "25.1.8",
     "wait-on": "7.2.0"
+  },
+  "npmConfig": {
+    "registry": "https://registry.npmmirror.com"
   }
 }
