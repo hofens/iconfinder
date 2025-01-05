@@ -12,7 +12,6 @@ function App() {
   const [selectedResult, setSelectedResult] = useState(null);
   const [searchPath, setSearchPath] = useState('');
   const [status, setStatus] = useState('');
-  const [showSettings, setShowSettings] = useState(false);
   const [excludePaths, setExcludePaths] = useState('');
   const [includePaths, setIncludePaths] = useState('');
   const [searchFile, setSearchFile] = useState(null);
@@ -495,11 +494,15 @@ function App() {
     return current;
   };
 
-  const settingsModal = showSettings && (
-    <div className="modal-overlay">
-      <div className="modal">
-        <h2>{getText('settings.title')}</h2>
-        <div className="modal-content">
+  const renderSettingsPanel = () => {
+    return (
+      <div className="section settings-section">
+        <div className="section-header">
+          <div className="header-left">
+            <FaCog /> 设置
+          </div>
+        </div>
+        <div className="settings-container">
           <div className="setting-group">
             <label>{getText('settings.language')}</label>
             <select
@@ -540,17 +543,9 @@ function App() {
             </label>
           </div>
         </div>
-        <div className="modal-actions">
-          <button 
-            style={{ backgroundColor: '#3182ce', color: 'white' }}
-            onClick={() => setShowSettings(false)}
-          >
-            {getText('settings.close')}
-          </button>
-        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   useEffect(() => {
     if (previewUrl) {
@@ -1068,6 +1063,8 @@ function App() {
             <div className="container">
               {activeSection === 'icons' ? (
                 renderIconSearchPanel()
+              ) : activeSection === 'settings' ? (
+                renderSettingsPanel()
               ) : (
                 <>
                   <div className="section directory-section">
@@ -1112,9 +1109,9 @@ function App() {
                       }} disabled={!searchPath.trim()} title={getText('directory.clear')}>
                         {getText('directory.clear')}
                       </button>
-                      <button className="settings-btn" onClick={() => setShowSettings(true)} title={getText('directory.settings')}>
+                      {/* <button className="settings-btn" onClick={() => setActiveSection('settings')} title={getText('directory.settings')}>
                         <FaCog /> {getText('directory.settings')}
-                      </button>
+                      </button> */}
                     </div>
                   </div>
 
@@ -1287,7 +1284,6 @@ function App() {
         </div>
       </div>
       {progressOverlay}
-      {settingsModal}
       {imagePreviewModal}
     </div>
   );
