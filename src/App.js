@@ -25,7 +25,7 @@ function App() {
   const [showImagePreview, setShowImagePreview] = useState(false);
   const [previewImageUrl, setPreviewImageUrl] = useState(null);
   const [language, setLanguage] = useState('zh');
-  const [activeSection, setActiveSection] = useState('home');
+  const [activeSection, setActiveSection] = useState('search');
   const [iconSearchQuery, setIconSearchQuery] = useState('');
   const [iconSearchResults, setIconSearchResults] = useState([]);
   const [iconSearchDirectory, setIconSearchDirectory] = useState('');
@@ -937,13 +937,6 @@ function App() {
     return (
       <div className="sidebar">
         <div className="sidebar-section">
-          <div 
-            className={`sidebar-item ${activeSection === 'home' ? 'active' : ''}`}
-            onClick={() => setActiveSection('home')}
-          >
-            <FaHome size={20} />
-            <span className="tooltip">首页</span>
-          </div>
           <div 
             className={`sidebar-item ${activeSection === 'search' ? 'active' : ''}`}
             onClick={() => setActiveSection('search')}
