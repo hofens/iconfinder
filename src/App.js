@@ -630,6 +630,11 @@ function App() {
     const normalizedFullPath = fullPath.replace(/\\/g, '/');
     const normalizedSearchPath = (iconSearchDirectory || searchPath).replace(/\\/g, '/');
     
+    // 如果是目录路径本身，直接返回
+    if (normalizedFullPath === normalizedSearchPath) {
+      return normalizedSearchPath;
+    }
+    
     // 如果路径以搜索目录开头，则去除该前缀
     if (normalizedFullPath.startsWith(normalizedSearchPath)) {
       let relativePath = normalizedFullPath.slice(normalizedSearchPath.length);
@@ -800,7 +805,9 @@ function App() {
           firstFile.path.substring(0, firstFile.path.lastIndexOf(firstFile.name)) :
           firstFile.webkitRelativePath.split('/')[0];
         
-        setIconSearchDirectory(directoryPath);
+        // 确保目录路径末尾没有斜杠
+        const cleanDirectoryPath = directoryPath.replace(/[/\\]+$/, '');
+        setIconSearchDirectory(cleanDirectoryPath);
         
         // 过滤出图片文件
         const imageFiles = files.filter(file => {
@@ -985,15 +992,15 @@ function App() {
           <div className="search-input">
             <div className="search-input-group">
               <div className="directory-select-group">
-                <button onClick={handleIconDirectorySelect} title="选择搜索目录">
-                  <FaFolder /> {iconSearchDirectory ? '更改目录' : '选择目录'}
-                </button>
                 <input
                   type="text"
                   value={getRelativePath(iconSearchDirectory)}
                   placeholder="未选择目录..."
                   readOnly
                 />
+                <button onClick={handleIconDirectorySelect} title="选择搜索目录">
+                  <FaFolder />
+                </button>
               </div>
               <div className="search-box">
                 <input
