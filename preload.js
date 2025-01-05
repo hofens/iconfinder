@@ -75,6 +75,9 @@ contextBridge.exposeInMainWorld('electron', {
       console.error('Error rebuilding cache:', error);
       throw error;
     }
+  },
+  openExternal: (url) => {
+    return ipcRenderer.invoke('open-external', url);
   }
 });
 window.addEventListener('DOMContentLoaded', () => {

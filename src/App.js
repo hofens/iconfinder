@@ -959,7 +959,11 @@ function App() {
           <div 
             className={`sidebar-item ${activeSection === 'about' ? 'active' : ''}`}
             onClick={() => {
-              window.open('https://github.com/hofens/iconfinder', '_blank');
+              if (window.electron) {
+                window.electron.openExternal('https://github.com/hofens/iconfinder');
+              } else {
+                window.open('https://github.com/hofens/iconfinder', '_blank');
+              }
             }}
           >
             <FaGithub size={20} />

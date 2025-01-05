@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const fs = require('fs');
 const fsPromises = require('fs').promises;
 const path = require('path');
@@ -793,3 +793,14 @@ function calculateSimilarityFromFeatures(sourceFeatures, targetFeatures, weights
     shapeSimilarity
   };
 }
+
+// 添加 open-external 处理程序
+ipcMain.handle('open-external', async (event, url) => {
+  try {
+    await shell.openExternal(url);
+    return true;
+  } catch (error) {
+    console.error('Error opening external URL:', error);
+    throw error;
+  }
+});
