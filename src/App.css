@@ -74,7 +74,7 @@ body {
 
 .main-content {
   flex: 1;
-  padding: 20px;
+  padding: 10px;
   overflow-y: auto;
   background-color: #ffffff;
   display: flex;
@@ -83,7 +83,6 @@ body {
 }
 
 .container {
-  max-width: 1400px;
   width: 100%;
   margin: 0 auto;
   display: flex;

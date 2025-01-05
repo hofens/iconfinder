@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import './App.css';
-import {FaCog, FaFolder, FaImage, FaUpload, FaSearch, FaInfoCircle, FaHome, FaQuestionCircle, FaIcons, FaGithub} from 'react-icons/fa';
+import {FaCog, FaFolder, FaImage, FaUpload, FaSearch, FaHome, FaQuestionCircle, FaIcons, FaGithub} from 'react-icons/fa';
 import {locales} from './locales';
 
 function App() {
@@ -967,7 +967,7 @@ function App() {
               window.open('https://github.com/hofens/iconfinder', '_blank');
             }}
           >
-            <FaGithub size={20} />
+            <FaAbout size={20} />
             <span className="tooltip">{getText('about.tooltip')}</span>
           </div>
         </div>
