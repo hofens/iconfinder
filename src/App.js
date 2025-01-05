@@ -624,11 +624,11 @@ function App() {
 
   // 添加一个处理路径的辅助函数
   const getRelativePath = (fullPath) => {
-    if (!searchPath || !fullPath) return fullPath;
+    if (!fullPath) return '';
     
     // 统一路径分隔符
     const normalizedFullPath = fullPath.replace(/\\/g, '/');
-    const normalizedSearchPath = searchPath.replace(/\\/g, '/');
+    const normalizedSearchPath = (iconSearchDirectory || searchPath).replace(/\\/g, '/');
     
     // 如果路径以搜索目录开头，则去除该前缀
     if (normalizedFullPath.startsWith(normalizedSearchPath)) {
@@ -898,15 +898,12 @@ function App() {
     }
 
     try {
-      // 在已扫描的文件中搜索
+      // 在已扫描的文件中搜索，只匹配文件名
       const searchTerms = query.toLowerCase().split(/\s+/);
       const results = iconFiles.filter(file => {
         const fileName = file.name.toLowerCase();
-        const filePath = getRelativePath(file.path).toLowerCase();
-        // 所有搜索词都必须匹配文件名或路径
-        return searchTerms.every(term => 
-          fileName.includes(term) || filePath.includes(term)
-        );
+        // 所有搜索词都必须匹配文件名
+        return searchTerms.every(term => fileName.includes(term));
       });
 
       setIconSearchResults(results);
@@ -915,6 +912,18 @@ function App() {
       console.error('搜索图标出错:', error);
       setStatus(`搜索图标失败: ${error.message}`);
     }
+  };
+
+  // 添加高亮文本的辅助函数
+  const highlightText = (text, highlight) => {
+    if (!highlight.trim()) return text;
+    const terms = highlight.toLowerCase().split(/\s+/);
+    let result = text;
+    terms.forEach(term => {
+      const regex = new RegExp(`(${term})`, 'gi');
+      result = result.replace(regex, '<mark>$1</mark>');
+    });
+    return result;
   };
 
   const renderSidebar = () => {
@@ -975,22 +984,33 @@ function App() {
         <div className="icon-search-container">
           <div className="search-input">
             <div className="search-input-group">
-              <input
-                type="text"
-                value={iconSearchQuery}
-                onChange={(e) => handleIconSearch(e.target.value)}
-                placeholder="输入图标名称搜索..."
-              />
               <div className="directory-select-group">
+                <button onClick={handleIconDirectorySelect} title="选择搜索目录">
+                  <FaFolder /> {iconSearchDirectory ? '更改目录' : '选择目录'}
+                </button>
                 <input
                   type="text"
-                  value={iconSearchDirectory}
-                  placeholder="选择搜索目录..."
+                  value={getRelativePath(iconSearchDirectory)}
+                  placeholder="未选择目录..."
                   readOnly
                 />
-                <button onClick={handleIconDirectorySelect}>
-                  <FaFolder /> 选择目录
-                </button>
+              </div>
+              <div className="search-box">
+                <input
+                  type="text"
+                  value={iconSearchQuery}
+                  onChange={(e) => handleIconSearch(e.target.value)}
+                  placeholder="输入图标名称搜索..."
+                />
+                {iconSearchQuery && (
+                  <button 
+                    className="clear-search" 
+                    onClick={() => handleIconSearch('')}
+                    title="清除搜索"
+                  >
+                    ×
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -998,11 +1018,28 @@ function App() {
             {iconSearchResults.length > 0 ? (
               <div className="icon-grid">
                 {iconSearchResults.map((icon, index) => (
-                  <div key={index} className="icon-item">
-                    <img src={icon.preview} alt={icon.name} />
+                  <div 
+                    key={index} 
+                    className="icon-item"
+                    onClick={() => handlePreviewClick(icon.preview)}
+                  >
+                    <div className="img-container">
+                      <img src={icon.preview} alt={icon.name} />
+                    </div>
                     <div className="icon-info">
-                      <div className="icon-name">{icon.name}</div>
-                      <div className="icon-path">{getRelativePath(icon.path)}</div>
+                      <div 
+                        className="icon-name"
+                        dangerouslySetInnerHTML={{
+                          __html: highlightText(icon.name, iconSearchQuery)
+                        }}
+                      />
+                      <div className="icon-details">
+                        <span className="icon-dimensions">{icon.dimensions}</span>
+                        <span className="icon-size">{icon.size}</span>
+                      </div>
+                      <div className="icon-path">
+                        {getRelativePath(icon.path)}
+                      </div>
                     </div>
                   </div>
                 ))}
