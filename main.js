@@ -25,8 +25,8 @@ function normalizePath(filePath) {
 function createWindow() {
   console.log(`__dirname ${__dirname}`);
   const win = new BrowserWindow({
-    width: 1200,
-    height: 1000,
+    width: 1096,
+    height: 828+30,
     icon: path.join(__dirname, 'public/logo512.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),

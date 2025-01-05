@@ -967,7 +967,7 @@ function App() {
               window.open('https://github.com/hofens/iconfinder', '_blank');
             }}
           >
-            <FaAbout size={20} />
+            <FaGithub size={20} />
             <span className="tooltip">{getText('about.tooltip')}</span>
           </div>
         </div>
