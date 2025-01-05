@@ -28,6 +28,8 @@ function App() {
   const [activeSection, setActiveSection] = useState('home');
   const [iconSearchQuery, setIconSearchQuery] = useState('');
   const [iconSearchResults, setIconSearchResults] = useState([]);
+  const [iconSearchDirectory, setIconSearchDirectory] = useState('');
+  const [iconFiles, setIconFiles] = useState([]);
 
   // Ensure ipcRenderer is available
 
@@ -779,18 +781,138 @@ function App() {
     setShowImagePreview(true);
   };
 
+  // 添加图标搜索目录选择函数
+  const handleIconDirectorySelect = async () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.webkitdirectory = true;
+    input.multiple = true;
+
+    input.onchange = async (e) => {
+      const files = Array.from(e.target.files);
+      if (files.length > 0) {
+        setIconSearchResults([]);
+        setStatus('正在扫描目录...');
+        
+        // 获取选择的目录路径
+        const firstFile = files[0];
+        const directoryPath = window.electron ? 
+          firstFile.path.substring(0, firstFile.path.lastIndexOf(firstFile.name)) :
+          firstFile.webkitRelativePath.split('/')[0];
+        
+        setIconSearchDirectory(directoryPath);
+        
+        // 过滤出图片文件
+        const imageFiles = files.filter(file => {
+          return file.type.startsWith('image/') || 
+                /\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i.test(file.name);
+        });
+        
+        // 为每个文件创建详细信息
+        const structure = await Promise.all(imageFiles.map(async file => {
+          let fileInfo = {
+            name: file.name,
+            path: window.electron ? file.path : (file.webkitRelativePath || file.name),
+            type: file.type,
+          };
+
+          try {
+            if (window.electron) {
+              setStatus(`正在处理: ${file.name}`);
+              fileInfo.size = await window.electron.getFileSize(file.path);
+              fileInfo.dimensions = await window.electron.getImageDimensions(file.path);
+              fileInfo.preview = await window.electron.getImagePreview(file.path);
+            } else {
+              fileInfo.size = `${(file.size / 1024).toFixed(2)} KB`;
+              fileInfo.blob = file.slice();
+              
+              fileInfo.dimensions = await new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                  resolve(`${img.naturalWidth}x${img.naturalHeight}`);
+                  URL.revokeObjectURL(img.src);
+                };
+                img.onerror = () => {
+                  resolve('Unknown dimensions');
+                  URL.revokeObjectURL(img.src);
+                };
+                img.src = URL.createObjectURL(file);
+              });
+
+              fileInfo.preview = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = () => resolve('');
+                reader.readAsDataURL(file);
+              });
+            }
+          } catch (error) {
+            console.error(`Error processing file ${file.name}:`, error);
+            fileInfo.size = 'Unknown size';
+            fileInfo.dimensions = 'Unknown dimensions';
+            fileInfo.preview = '';
+          }
+
+          return fileInfo;
+        }));
+
+        // 保存扫描到的文件列表
+        setIconFiles(structure);
+
+        // 初始化图片缓存
+        if (window.electron) {
+          try {
+            const cacheExists = await window.electron.checkCacheExists(directoryPath);
+            if (!cacheExists) {
+              setStatus('正在初始化图片缓存...');
+              await window.electron.initializeImageCache(directoryPath);
+              setCacheInitialized(true);
+            }
+          } catch (error) {
+            console.error('Error initializing image cache:', error);
+            setStatus(`目录扫描完成，但缓存初始化失败: ${error.message}`);
+          }
+        }
+
+        setStatus(`目录扫描完成，共发现 ${imageFiles.length} 个图片文件`);
+        
+        // 如果有搜索关键词，执行搜索
+        if (iconSearchQuery.trim()) {
+          handleIconSearch(iconSearchQuery);
+        }
+      }
+    };
+
+    input.click();
+  };
+
   const handleIconSearch = async (query) => {
     setIconSearchQuery(query);
+    if (!iconSearchDirectory) {
+      setStatus('请先选择搜索目录');
+      return;
+    }
     if (!query.trim()) {
       setIconSearchResults([]);
       return;
     }
 
     try {
-      const results = await window.electron.searchIconsByName(query);
+      // 在已扫描的文件中搜索
+      const searchTerms = query.toLowerCase().split(/\s+/);
+      const results = iconFiles.filter(file => {
+        const fileName = file.name.toLowerCase();
+        const filePath = getRelativePath(file.path).toLowerCase();
+        // 所有搜索词都必须匹配文件名或路径
+        return searchTerms.every(term => 
+          fileName.includes(term) || filePath.includes(term)
+        );
+      });
+
       setIconSearchResults(results);
+      setStatus(`找到 ${results.length} 个匹配的图标`);
     } catch (error) {
-      console.error('Error searching icons:', error);
+      console.error('搜索图标出错:', error);
       setStatus(`搜索图标失败: ${error.message}`);
     }
   };
@@ -852,12 +974,25 @@ function App() {
         </div>
         <div className="icon-search-container">
           <div className="search-input">
-            <input
-              type="text"
-              value={iconSearchQuery}
-              onChange={(e) => handleIconSearch(e.target.value)}
-              placeholder="输入图标名称搜索..."
-            />
+            <div className="search-input-group">
+              <input
+                type="text"
+                value={iconSearchQuery}
+                onChange={(e) => handleIconSearch(e.target.value)}
+                placeholder="输入图标名称搜索..."
+              />
+              <div className="directory-select-group">
+                <input
+                  type="text"
+                  value={iconSearchDirectory}
+                  placeholder="选择搜索目录..."
+                  readOnly
+                />
+                <button onClick={handleIconDirectorySelect}>
+                  <FaFolder /> 选择目录
+                </button>
+              </div>
+            </div>
           </div>
           <div className="icon-results">
             {iconSearchResults.length > 0 ? (
@@ -867,7 +1002,7 @@ function App() {
                     <img src={icon.preview} alt={icon.name} />
                     <div className="icon-info">
                       <div className="icon-name">{icon.name}</div>
-                      <div className="icon-path">{icon.path}</div>
+                      <div className="icon-path">{getRelativePath(icon.path)}</div>
                     </div>
                   </div>
                 ))}
@@ -875,7 +1010,8 @@ function App() {
             ) : (
               <div className="no-icons">
                 <FaIcons size={40} />
-                <p>{iconSearchQuery ? '未找到匹配的图标' : '输入关键词开始搜索'}</p>
+                <p>{!iconSearchDirectory ? '请先选择搜索目录' : 
+                    iconSearchQuery ? '未找到匹配的图标' : '输入关键词开始搜索'}</p>
               </div>
             )}
           </div>
