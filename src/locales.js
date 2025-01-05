@@ -49,6 +49,10 @@ export const locales = {
       ready: '准备就绪',
       processing: '处理中...',
       error: '错误'
+    },
+    about: {
+      title: '关于',
+      tooltip: '关于'
     }
   },
   en: {
@@ -101,6 +105,10 @@ export const locales = {
       ready: 'Ready to process',
       processing: 'Processing...',
       error: 'Error'
+    },
+    about: {
+      title: 'About',
+      tooltip: 'About'
     }
   }
 }; 

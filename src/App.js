@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import './App.css';
-import {FaCog, FaFolder, FaImage, FaUpload, FaSearch, FaInfoCircle, FaHome, FaQuestionCircle, FaIcons} from 'react-icons/fa';
+import {FaCog, FaFolder, FaImage, FaUpload, FaSearch, FaInfoCircle, FaHome, FaQuestionCircle, FaIcons, FaGithub} from 'react-icons/fa';
 import {locales} from './locales';
 
 function App() {
@@ -969,11 +969,13 @@ function App() {
             <span className="tooltip">设置</span>
           </div>
           <div 
-            className={`sidebar-item ${activeSection === 'help' ? 'active' : ''}`}
-            onClick={() => setActiveSection('help')}
+            className={`sidebar-item ${activeSection === 'about' ? 'active' : ''}`}
+            onClick={() => {
+              window.open('https://github.com/hofens/iconfinder', '_blank');
+            }}
           >
-            <FaQuestionCircle size={20} />
-            <span className="tooltip">帮助</span>
+            <FaGithub size={20} />
+            <span className="tooltip">{getText('about.tooltip')}</span>
           </div>
         </div>
       </div>
