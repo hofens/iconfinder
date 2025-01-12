@@ -2,6 +2,7 @@ import React, {useEffect, useState, useRef} from 'react';
 import './App.css';
 import {FaCog, FaFolder, FaImage, FaUpload, FaSearch, FaHome, FaQuestionCircle, FaIcons, FaGithub, FaCrop} from 'react-icons/fa';
 import {locales} from './locales';
+import Select from 'react-select';
 
 // 由于 path 是 Node.js 模块，我们需要通过 window.electron 来访问
 const path = {
@@ -494,26 +495,86 @@ function App() {
     return tree;
   };
 
-  // 将树形结构转换为扁平的选项列表
-  const flattenDirectoryTree = (tree, level = 0, parentPath = '', result = []) => {
+  // 将树形结构转换为 react-select 的选项格式
+  const getDirectoryOptions = (tree, level = 0, result = []) => {
     Object.values(tree).forEach(node => {
       const hasChildren = Object.keys(node.children).length > 0;
       const isExpanded = expandedDirs.has(node.path);
       
       result.push({
-        name: node.name,
-        path: node.path,
-        level,
+        value: node.path,
+        label: node.name,
         isLeaf: !hasChildren,
-        hasChildren,
-        isExpanded
+        level,
       });
       
-      if (hasChildren && isExpanded) {
-        flattenDirectoryTree(node.children, level + 1, node.path, result);
+      if (hasChildren) {
+        getDirectoryOptions(node.children, level + 1, result);
       }
     });
     return result;
+  };
+
+  // 自定义选项渲染
+  const CustomOption = ({ children, ...props }) => {
+    const { data, isSelected } = props;
+    const isParent = !data.isLeaf;
+
+    return (
+      <div
+        {...props.innerProps}
+        className={`custom-option ${isSelected ? 'selected' : ''} ${isParent ? 'parent' : 'leaf'}`}
+        style={{
+          padding: '8px 12px',
+          paddingLeft: `${(data.level * 16) + 12}px`,
+          cursor: 'pointer',
+          backgroundColor: isSelected ? '#ebf8ff' : 'transparent',
+          color: isSelected ? '#4a90e2' : (isParent ? '#2d3748' : '#4a5568'),
+          fontWeight: isParent ? 500 : 'normal',
+          ':hover': {
+            backgroundColor: '#f7fafc'
+          }
+        }}
+      >
+        {children}
+      </div>
+    );
+  };
+
+  // 自定义值容器
+  const CustomValueContainer = ({ children, ...props }) => {
+    return (
+      <div
+        style={{
+          padding: '2px 8px',
+          display: 'flex',
+          alignItems: 'center'
+        }}
+      >
+        {children}
+      </div>
+    );
+  };
+
+  // Select 组件的自定义样式
+  const customStyles = {
+    control: (base, state) => ({
+      ...base,
+      borderColor: state.isFocused ? '#4a90e2' : '#e2e8f0',
+      boxShadow: state.isFocused ? '0 0 0 1px #4a90e2' : 'none',
+      '&:hover': {
+        borderColor: '#4a90e2'
+      }
+    }),
+    menu: (base) => ({
+      ...base,
+      zIndex: 1000,
+      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+      border: '1px solid #e2e8f0',
+      borderRadius: '6px'
+    }),
+    option: () => ({}), // 我们使用自定义选项组件
+    valueContainer: () => ({}), // 我们使用自定义值容器
   };
 
   // 添加目录展开/收起处理函数
@@ -1342,47 +1403,27 @@ function App() {
                         {availableDirs.length > 0 && (
                           <div className="control-item directory-filter">
                             <label>{getText('results.directory')}:</label>
-                            <div className="directory-tree-select">
-                              <div 
-                                className="directory-select-header"
-                                onClick={() => setIsDirectorySelectOpen(!isDirectorySelectOpen)}
-                              >
-                                <span>{resultDirFilter || getText('results.allDirectories')}</span>
-                                <span className="arrow">{isDirectorySelectOpen ? '▼' : '▶'}</span>
-                              </div>
-                              {isDirectorySelectOpen && (
-                                <div className="directory-options">
-                                  <div 
-                                    className={`directory-option ${!resultDirFilter ? 'selected' : ''}`}
-                                    onClick={() => handleDirectoryFilterChange('')}
-                                  >
-                                    {getText('results.allDirectories')}
-                                  </div>
-                                  {flattenDirectoryTree(buildDirectoryTree(availableDirs)).map(item => (
-                                    <div 
-                                      key={item.path}
-                                      className={`directory-option ${item.isLeaf ? 'leaf' : 'parent'} ${
-                                        item.isExpanded ? 'expanded' : ''
-                                      } ${resultDirFilter === item.path ? 'selected' : ''}`}
-                                      style={{
-                                        paddingLeft: `${(item.level * 16) + 4}px`,
-                                      }}
-                                      onClick={() => handleDirectoryFilterChange(item.path)}
-                                    >
-                                      {item.hasChildren && (
-                                        <span 
-                                          className="toggle-icon"
-                                          onClick={(e) => handleDirToggle(e, item.path)}
-                                        >
-                                          {item.isExpanded ? '▼' : '▶'}
-                                        </span>
-                                      )}
-                                      <span className="option-name">{item.name}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
+                            <Select
+                              value={
+                                resultDirFilter
+                                  ? { value: resultDirFilter, label: resultDirFilter.split('/').pop() }
+                                  : { value: '', label: getText('results.allDirectories') }
+                              }
+                              options={[
+                                { value: '', label: getText('results.allDirectories') },
+                                ...getDirectoryOptions(buildDirectoryTree(availableDirs))
+                              ]}
+                              onChange={(option) => handleDirectoryFilterChange(option.value)}
+                              components={{
+                                Option: CustomOption,
+                                ValueContainer: CustomValueContainer
+                              }}
+                              styles={customStyles}
+                              isSearchable={true}
+                              placeholder={getText('results.directory')}
+                              className="directory-select"
+                              classNamePrefix="directory-select"
+                            />
                           </div>
                         )}
                       </div>

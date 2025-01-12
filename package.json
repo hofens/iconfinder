@@ -19,6 +19,7 @@
     "react-dom": "18.2.0",
     "react-icons": "5.4.0",
     "react-scripts": "5.0.1",
+    "react-select": "5.9.0",
     "sharp": "0.33.5"
   },
   "scripts": {

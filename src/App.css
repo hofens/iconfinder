@@ -1437,6 +1437,7 @@ mark {
 
 .directory-filter {
   position: relative;
+  width: 240px;
 }
 
 .directory-tree-select {
@@ -1627,4 +1628,86 @@ mark {
 /* 悬停效果 */
 .directory-option:hover .option-name {
   color: #4a90e2;
+}
+
+.directory-filter {
+  position: relative;
+  width: 240px;
+}
+
+.directory-select {
+  font-size: 14px;
+}
+
+.directory-select__control {
+  min-height: 36px !important;
+}
+
+.directory-select__menu {
+  margin-top: 4px !important;
+}
+
+.custom-option {
+  transition: all 0.2s ease;
+}
+
+.custom-option:hover {
+  background-color: #f7fafc !important;
+}
+
+.custom-option.parent {
+  position: relative;
+}
+
+.custom-option.leaf {
+  color: #4a5568;
+}
+
+.directory-select__value-container {
+  padding: 2px 8px !important;
+}
+
+.directory-select__single-value {
+  color: #2d3748 !important;
+}
+
+.directory-select__placeholder {
+  color: #a0aec0 !important;
+}
+
+.directory-select__indicator-separator {
+  display: none;
+}
+
+.directory-select__dropdown-indicator {
+  color: #a0aec0 !important;
+  padding: 0 8px !important;
+}
+
+.directory-select__dropdown-indicator:hover {
+  color: #4a90e2 !important;
+}
+
+/* 删除旧的目录选择器样式 */
+
+/* 移除外层容器的边框和边距 */
+.css-b62m3t-container {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.directory-select__control {
+  min-height: 36px !important;
+  border: none !important;
+  box-shadow: none !important;
+  background-color: transparent !important;
+}
+
+.directory-select__control:hover {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.directory-select__value-container {
+  padding: 2px 0 !important;
 }
