@@ -1202,7 +1202,8 @@ function App() {
         const file = {
           path: screenshotPath,
           name: path.basename(screenshotPath),
-          size: (await window.electron.getFileSize(screenshotPath)).replace(' KB', '') * 1024
+          size: (await window.electron.getFileSize(screenshotPath)).replace(' KB', '') * 1024,
+          type: 'image/png'  // 添加文件类型信息，因为截图保存为PNG格式
         };
         
         setSelectedFile(file);
