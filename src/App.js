@@ -1,6 +1,6 @@
 import React, {useEffect, useState, useRef} from 'react';
 import './App.css';
-import {FaCog, FaFolder, FaImage, FaUpload, FaSearch, FaHome, FaQuestionCircle, FaIcons, FaGithub, FaCrop, FaTimes} from 'react-icons/fa';
+import {FaCog, FaFolder, FaImage, FaUpload, FaSearch, FaHome, FaQuestionCircle, FaIcons, FaGithub, FaCrop, FaTrash} from 'react-icons/fa';
 import {locales} from './locales';
 import Select from 'react-select';
 
@@ -49,6 +49,7 @@ function App() {
   const [imageDimensions, setImageDimensions] = useState(null);
   const [cachePath, setCachePath] = useState('');
   const [screenshotPath, setScreenshotPath] = useState('');
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
   // Ensure ipcRenderer is available
 
@@ -722,19 +723,15 @@ function App() {
               <button
                 onClick={async () => {
                   try {
-                    console.log('正在清除目录:', cachePath);
                     await window.electron.clearDirectory(cachePath);
-                    console.log('清除成功');
-                    setStatus('缓存文件已清除');
+                    showToast('缓存文件已清除');
                   } catch (error) {
-                    console.error('清除缓存文件失败:', error);
-                    setStatus('清除缓存文件失败: ' + error.message);
+                    showToast('清除缓存文件失败: ' + error.message, 'error');
                   }
                 }}
                 title="清除所有缓存文件"
-                style={{ backgroundColor: '#dc3545' }}
               >
-                <FaTimes />
+                <FaTrash />
               </button>
             </div>
           </div>
@@ -758,19 +755,15 @@ function App() {
               <button
                 onClick={async () => {
                   try {
-                    console.log('正在清除目录:', screenshotPath);
                     await window.electron.clearDirectory(screenshotPath);
-                    console.log('清除成功');
-                    setStatus('截图文件已清除');
+                    showToast('截图文件已清除');
                   } catch (error) {
-                    console.error('清除截图文件失败:', error);
-                    setStatus('清除截图文件失败: ' + error.message);
+                    showToast('清除截图文件失败: ' + error.message, 'error');
                   }
                 }}
                 title="清除所有截图文件"
-                style={{ backgroundColor: '#dc3545' }}
               >
-                <FaTimes />
+                <FaTrash />
               </button>
             </div>
           </div>
@@ -1347,6 +1340,12 @@ function App() {
     }
   };
 
+  // 添加显示 Toast 的函数
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
+  };
+
   return (
     <div className="App">
       {renderSidebar()}
@@ -1598,6 +1597,11 @@ function App() {
       </div>
       {progressOverlay}
       {imagePreviewModal}
+      {toast.show && (
+        <div className={`toast ${toast.type}`}>
+          {toast.message}
+        </div>
+      )}
     </div>
   );
 }
