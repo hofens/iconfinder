@@ -643,128 +643,147 @@ function App() {
           </div>
         </div>
         <div className="settings-container">
-          <div className="setting-group">
-            <label>{getText('settings.language')}</label>
-            <select
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-              style={{ width: '100%', padding: '8px', marginTop: '4px' }}
-            >
-              <option value="zh">中文</option>
-              <option value="en">English</option>
-            </select>
+          {/* 语言设置 */}
+          <div className="settings-group">
+            <h3>语言设置</h3>
+            <div className="setting-item">
+              <label>{getText('settings.language')}</label>
+              <select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                style={{ width: '100%', padding: '8px', marginTop: '4px' }}
+              >
+                <option value="zh">中文</option>
+                <option value="en">English</option>
+              </select>
+            </div>
           </div>
-          <div className="setting-group">
-            <label>{getText('settings.similarity_features')}</label>
-            <div style={{ display: 'flex', alignItems: 'center', marginTop: '8px' }}>
-              <label className="checkbox-label" style={{ marginRight: '24px' }}>
-                <input
-                  type="checkbox"
-                  checked={colorEnabled}
-                  onChange={(e) => setColorEnabled(e.target.checked)}
-                />
-                {getText('settings.color_feature')}
-              </label>
+
+          {/* 目录设置 */}
+          <div className="settings-group">
+            <h3>目录设置</h3>
+            <div className="setting-item">
+              <label>{getText('settings.includePaths')}</label>
+              <input
+                type="text"
+                value={includePaths}
+                onChange={(e) => setIncludePaths(e.target.value)}
+                placeholder={language === 'zh' ? "例如: \\.png$|\\.jpg$" : "e.g: \\.png$|\\.jpg$"}
+              />
+            </div>
+            <div className="setting-item">
+              <label>{getText('settings.excludePaths')}</label>
+              <input
+                type="text"
+                value={excludePaths}
+                onChange={(e) => setExcludePaths(e.target.value)}
+                placeholder={language === 'zh' ? "例如: node_modules|\\.git" : "e.g: node_modules|\\.git"}
+              />
+            </div>
+          </div>
+
+          {/* 算法设置 */}
+          <div className="settings-group">
+            <h3>算法设置</h3>
+            <div className="setting-item">
+              <label>{getText('settings.similarity_features')}</label>
+              <div style={{ display: 'flex', alignItems: 'center', marginTop: '8px' }}>
+                <label className="checkbox-label" style={{ marginRight: '24px' }}>
+                  <input
+                    type="checkbox"
+                    checked={colorEnabled}
+                    onChange={(e) => setColorEnabled(e.target.checked)}
+                  />
+                  {getText('settings.color_feature')}
+                </label>
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={shapeEnabled}
+                    onChange={(e) => setShapeEnabled(e.target.checked)}
+                  />
+                  {getText('settings.shape_feature')}
+                </label>
+              </div>
+            </div>
+            <div className="setting-item">
               <label className="checkbox-label">
                 <input
                   type="checkbox"
-                  checked={shapeEnabled}
-                  onChange={(e) => setShapeEnabled(e.target.checked)}
+                  checked={showDetailedInfo}
+                  onChange={(e) => setShowDetailedInfo(e.target.checked)}
                 />
-                {getText('settings.shape_feature')}
+                {getText('settings.showDetailedInfo')}
               </label>
             </div>
           </div>
-          <div className="setting-group">
-            <label>{getText('settings.includePaths')}</label>
-            <input
-              type="text"
-              value={includePaths}
-              onChange={(e) => setIncludePaths(e.target.value)}
-              placeholder={language === 'zh' ? "例如: \\.png$|\\.jpg$" : "e.g: \\.png$|\\.jpg$"}
-            />
-          </div>
-          <div className="setting-group">
-            <label>{getText('settings.excludePaths')}</label>
-            <input
-              type="text"
-              value={excludePaths}
-              onChange={(e) => setExcludePaths(e.target.value)}
-              placeholder={language === 'zh' ? "例如: node_modules|\\.git" : "e.g: node_modules|\\.git"}
-            />
-          </div>
-          <div className="setting-group">
-            <label className="checkbox-label">
-              <input
-                type="checkbox"
-                checked={showDetailedInfo}
-                onChange={(e) => setShowDetailedInfo(e.target.checked)}
-              />
-              {getText('settings.showDetailedInfo')}
-            </label>
-          </div>
-          <div className="setting-group">
-            <label>缓存文件存储路径</label>
-            <div className="path-display">
-              <input
-                type="text"
-                value={cachePath}
-                readOnly
-                onClick={() => handleOpenDirectory(cachePath)}
-                style={{ cursor: 'pointer' }}
-                title="点击在文件管理器中打开"
-              />
-              <button 
-                onClick={() => handleOpenDirectory(cachePath)}
-                title="在文件管理器中打开"
-              >
-                <FaFolder />
-              </button>
-              <button
-                onClick={async () => {
-                  try {
-                    await window.electron.clearDirectory(cachePath);
-                    showToast('缓存文件已清除');
-                  } catch (error) {
-                    showToast('清除缓存文件失败: ' + error.message, 'error');
-                  }
-                }}
-                title="清除所有缓存文件"
-              >
-                <FaTrash />
-              </button>
+
+          {/* 缓存设置 */}
+          <div className="settings-group">
+            <h3>缓存设置</h3>
+            <div className="setting-item">
+              <label>缓存文件存储路径</label>
+              <div className="path-display">
+                <input
+                  type="text"
+                  value={cachePath}
+                  readOnly
+                  onClick={() => handleOpenDirectory(cachePath)}
+                  style={{ cursor: 'pointer' }}
+                  title="点击在文件管理器中打开"
+                />
+                <button 
+                  onClick={() => handleOpenDirectory(cachePath)}
+                  title="在文件管理器中打开"
+                >
+                  <FaFolder />
+                </button>
+                <button
+                  onClick={async () => {
+                    try {
+                      await window.electron.clearDirectory(cachePath);
+                      showToast('缓存文件已清除');
+                    } catch (error) {
+                      showToast('清除缓存文件失败: ' + error.message, 'error');
+                    }
+                  }}
+                  title="清除所有缓存文件"
+                >
+                  <FaTrash />
+                </button>
+              </div>
             </div>
-          </div>
-          <div className="setting-group">
-            <label>截图文件存储路径</label>
-            <div className="path-display">
-              <input
-                type="text"
-                value={screenshotPath}
-                readOnly
-                onClick={() => handleOpenDirectory(screenshotPath)}
-                style={{ cursor: 'pointer' }}
-                title="点击在文件管理器中打开"
-              />
-              <button 
-                onClick={() => handleOpenDirectory(screenshotPath)}
-                title="在文件管理器中打开"
-              >
-                <FaFolder />
-              </button>
-              <button
-                onClick={async () => {
-                  try {
-                    await window.electron.clearDirectory(screenshotPath);
-                    showToast('截图文件已清除');
-                  } catch (error) {
-                    showToast('清除截图文件失败: ' + error.message, 'error');
-                  }
-                }}
-                title="清除所有截图文件"
-              >
-                <FaTrash />
-              </button>
+            <div className="setting-item">
+              <label>截图文件存储路径</label>
+              <div className="path-display">
+                <input
+                  type="text"
+                  value={screenshotPath}
+                  readOnly
+                  onClick={() => handleOpenDirectory(screenshotPath)}
+                  style={{ cursor: 'pointer' }}
+                  title="点击在文件管理器中打开"
+                />
+                <button 
+                  onClick={() => handleOpenDirectory(screenshotPath)}
+                  title="在文件管理器中打开"
+                >
+                  <FaFolder />
+                </button>
+                <button
+                  onClick={async () => {
+                    try {
+                      await window.electron.clearDirectory(screenshotPath);
+                      showToast('截图文件已清除');
+                    } catch (error) {
+                      showToast('清除截图文件失败: ' + error.message, 'error');
+                    }
+                  }}
+                  title="清除所有截图文件"
+                >
+                  <FaTrash />
+                </button>
+              </div>
             </div>
           </div>
         </div>

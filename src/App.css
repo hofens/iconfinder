@@ -1311,51 +1311,71 @@ mark {
 }
 
 .settings-container {
+  padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 24px;
+}
+
+.settings-group {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
   padding: 16px;
 }
 
-.settings-container .setting-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.settings-group h3 {
+  margin: 0 0 16px 0;
+  color: #2d3748;
+  font-size: 1.1em;
+  font-weight: 600;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e2e8f0;
 }
 
-.settings-container .setting-group label {
+.setting-item {
+  margin-bottom: 16px;
+}
+
+.setting-item:last-child {
+  margin-bottom: 0;
+}
+
+.setting-item label {
+  display: block;
+  margin-bottom: 8px;
   color: #4a5568;
   font-weight: 500;
 }
 
-.settings-container .setting-group input,
-.settings-container .setting-group select {
+.setting-item input[type="text"],
+.setting-item select {
+  width: 100%;
   padding: 8px;
   border: 1px solid #e2e8f0;
   border-radius: 4px;
-  font-size: 14px;
   background-color: white;
+  color: #2d3748;
 }
 
-.settings-container .setting-group input:focus,
-.settings-container .setting-group select:focus {
-  border-color: #3182ce;
+.setting-item input[type="text"]:focus,
+.setting-item select:focus {
+  border-color: #4a90e2;
   outline: none;
-  box-shadow: 0 0 0 2px rgba(49, 130, 206, 0.2);
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
 }
 
-.settings-container .checkbox-label {
+.checkbox-label {
   display: flex;
   align-items: center;
   gap: 8px;
   cursor: pointer;
-  user-select: none;
 }
 
-.settings-container .checkbox-label input[type="checkbox"] {
+.checkbox-label input[type="checkbox"] {
   width: 16px;
   height: 16px;
-  margin: 0;
+  cursor: pointer;
 }
 
 .upload-buttons {
