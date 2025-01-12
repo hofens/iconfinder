@@ -728,6 +728,7 @@ function App() {
 
   const handleResultClick = async (index) => {
     setSelectedResult(index);
+    
     const result = searchResults[index];
     
     try {
@@ -735,33 +736,11 @@ function App() {
         // 从缓存中查找文件信息
         const cachedFile = directoryStructure.find(file => file.path === result.path);
         if (cachedFile) {
-          // 使用缓存的文件信息
-          const similarityResult = await window.electron.calculateImageSimilarity(
-            searchFile.path,
-            result.path,
-            { 
-              colorWeight: 0.7,
-              shapeWeight: 0.3,
-              threshold: similarity 
-            }
-          );
-          
-          const normalizedColorWeight = 0.7 / (0.7 + 0.3);
-          const normalizedShapeWeight = 0.3 / (0.7 + 0.3);
-          
-          const totalSimilarity = (
-            similarityResult.colorSimilarity * normalizedColorWeight + 
-            similarityResult.shapeSimilarity * normalizedShapeWeight
-          );
-          
+          // 直接使用已有的结果信息，不再重新计算
           searchResults[index] = {
             ...result,
-            size: cachedFile.size,  // 使用缓存的文件大小
-            dimensions: cachedFile.dimensions,  // 使用缓存的图片尺寸
-            colorSimilarity: similarityResult.colorSimilarity.toFixed(4),
-            shapeSimilarity: similarityResult.shapeSimilarity.toFixed(4),
-            totalSimilarity: totalSimilarity.toFixed(4),
-            similarity: totalSimilarity.toFixed(4)
+            size: cachedFile.size,
+            dimensions: cachedFile.dimensions,
           };
           
           setSearchResults([...searchResults]);
