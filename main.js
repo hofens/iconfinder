@@ -72,7 +72,6 @@ app.whenReady().then(createWindow);
 
 // 添加缓存相关的代码
 const imageCache = new Map();
-const similarityCache = new Map();
 
 // 修改缓存相关的常量
 const CACHE_FILE_NAME = 'image-cache.json';
@@ -130,7 +129,6 @@ async function initializeImageCache(directoryPath) {
   try {
     console.log('Initializing image cache...');
     imageCache.clear();
-    similarityCache.clear();
 
     // 确保缓存目录存在
     ensureCacheDirectory();
@@ -275,14 +273,6 @@ async function getAllImageFiles(dirPath) {
 async function calculateSimilarityWithCache(sourcePath, targetPath, weights) {
   const cacheKey = `${sourcePath}|${targetPath}|${weights.colorWeight}|${weights.shapeWeight}`;
   
-  // 检查缓存是否存在且有效
-  if (similarityCache.has(cacheKey)) {
-    console.log('Using cached similarity result');
-    return similarityCache.get(cacheKey);
-  } else {
-    console.log('No cached similarity result found');
-  }
-
   // 获取或计算源图片特征
   let sourceFeatures = imageCache.get(sourcePath)?.features;
   if (!sourceFeatures) {
@@ -304,8 +294,6 @@ async function calculateSimilarityWithCache(sourcePath, targetPath, weights) {
   // 计算相似度
   const result = calculateSimilarityFromFeatures(sourceFeatures, targetFeatures, weights);
   
-  // 缓存计算结果
-  similarityCache.set(cacheKey, result);
   
   return result;
 }
@@ -320,7 +308,6 @@ async function rebuildCache(directoryPath) {
     
     // 清除内存中的缓存
     imageCache.clear();
-    similarityCache.clear();
 
     // 删除缓存文件
     const cacheFilePath = getCacheFilePath(directoryPath);
