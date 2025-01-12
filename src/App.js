@@ -40,6 +40,8 @@ function App() {
   const [isScreenCapturing, setIsScreenCapturing] = useState(false);
   const selectionRef = useRef(null);
   const startPosRef = useRef(null);
+  const [expandedDirs, setExpandedDirs] = useState(new Set());
+  const [isDirectorySelectOpen, setIsDirectorySelectOpen] = useState(false);
 
   // Ensure ipcRenderer is available
 
@@ -466,13 +468,71 @@ function App() {
     }
   };
 
-  // 添加目录筛选处理函数
-  const handleDirectoryFilterChange = (e) => {
-    const dirFilter = e.target.value;
-    setResultDirFilter(dirFilter);
-    
-    // 应用相似度和目录筛选
-    applyFilters(similarity, dirFilter);
+  // 修改目录树处理函数
+  const buildDirectoryTree = (paths) => {
+    const tree = {};
+    paths.forEach(path => {
+      const parts = path.split('/').filter(Boolean);
+      let current = tree;
+      let fullPath = '';
+      
+      for (let i = 0; i < parts.length; i++) {
+        const part = parts[i];
+        fullPath = fullPath ? `${fullPath}/${part}` : part;
+        
+        if (!current[part]) {
+          current[part] = {
+            name: part,
+            path: fullPath,
+            children: {},
+            isLeaf: i === parts.length - 1
+          };
+        }
+        current = current[part].children;
+      }
+    });
+    return tree;
+  };
+
+  // 将树形结构转换为扁平的选项列表
+  const flattenDirectoryTree = (tree, level = 0, parentPath = '', result = []) => {
+    Object.values(tree).forEach(node => {
+      const hasChildren = Object.keys(node.children).length > 0;
+      const isExpanded = expandedDirs.has(node.path);
+      
+      result.push({
+        name: node.name,
+        path: node.path,
+        level,
+        isLeaf: !hasChildren,
+        hasChildren,
+        isExpanded
+      });
+      
+      if (hasChildren && isExpanded) {
+        flattenDirectoryTree(node.children, level + 1, node.path, result);
+      }
+    });
+    return result;
+  };
+
+  // 添加目录展开/收起处理函数
+  const handleDirToggle = (e, path) => {
+    e.stopPropagation();
+    const newExpandedDirs = new Set(expandedDirs);
+    if (newExpandedDirs.has(path)) {
+      newExpandedDirs.delete(path);
+    } else {
+      newExpandedDirs.add(path);
+    }
+    setExpandedDirs(newExpandedDirs);
+  };
+
+  // 修改目录筛选处理函数
+  const handleDirectoryFilterChange = (path) => {
+    setResultDirFilter(path);
+    setIsDirectorySelectOpen(false);
+    applyFilters(similarity, path);
   };
 
   // 添加组合筛选函数
@@ -483,8 +543,10 @@ function App() {
         const meetsSimilarity = parseFloat(result.similarity) >= similarityValue;
         
         // 目录筛选
+        const resultPath = getRelativePath(result.path);
         const meetsDirectory = !dirFilter || 
-          getRelativePath(result.path).split('/').slice(0, -1).join('/') === dirFilter;
+          resultPath.startsWith(dirFilter + '/') || // 子目录
+          resultPath.split('/').slice(0, -1).join('/') === dirFilter; // 当前目录
         
         // 两个条件都满足才返回true
         return meetsSimilarity && meetsDirectory;
@@ -1278,18 +1340,49 @@ function App() {
                           <span>{Number(similarity).toFixed(4)}</span>
                         </div>
                         {availableDirs.length > 0 && (
-                          <div className="control-item">
+                          <div className="control-item directory-filter">
                             <label>{getText('results.directory')}:</label>
-                            <select
-                              value={resultDirFilter}
-                              onChange={handleDirectoryFilterChange}
-                              className="directory-select"
-                            >
-                              <option value="">{getText('results.allDirectories')}</option>
-                              {availableDirs.map(dir => (
-                                <option key={dir} value={dir}>{dir || getText('results.rootDirectory')}</option>
-                              ))}
-                            </select>
+                            <div className="directory-tree-select">
+                              <div 
+                                className="directory-select-header"
+                                onClick={() => setIsDirectorySelectOpen(!isDirectorySelectOpen)}
+                              >
+                                <span>{resultDirFilter || getText('results.allDirectories')}</span>
+                                <span className="arrow">{isDirectorySelectOpen ? '▼' : '▶'}</span>
+                              </div>
+                              {isDirectorySelectOpen && (
+                                <div className="directory-options">
+                                  <div 
+                                    className={`directory-option ${!resultDirFilter ? 'selected' : ''}`}
+                                    onClick={() => handleDirectoryFilterChange('')}
+                                  >
+                                    {getText('results.allDirectories')}
+                                  </div>
+                                  {flattenDirectoryTree(buildDirectoryTree(availableDirs)).map(item => (
+                                    <div 
+                                      key={item.path}
+                                      className={`directory-option ${item.isLeaf ? 'leaf' : 'parent'} ${
+                                        item.isExpanded ? 'expanded' : ''
+                                      } ${resultDirFilter === item.path ? 'selected' : ''}`}
+                                      style={{
+                                        paddingLeft: `${(item.level * 16) + 4}px`,
+                                      }}
+                                      onClick={() => handleDirectoryFilterChange(item.path)}
+                                    >
+                                      {item.hasChildren && (
+                                        <span 
+                                          className="toggle-icon"
+                                          onClick={(e) => handleDirToggle(e, item.path)}
+                                        >
+                                          {item.isExpanded ? '▼' : '▶'}
+                                        </span>
+                                      )}
+                                      <span className="option-name">{item.name}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>
