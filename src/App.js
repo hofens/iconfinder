@@ -719,6 +719,23 @@ function App() {
               >
                 <FaFolder />
               </button>
+              <button
+                onClick={async () => {
+                  try {
+                    console.log('正在清除目录:', cachePath);
+                    await window.electron.clearDirectory(cachePath);
+                    console.log('清除成功');
+                    setStatus('缓存文件已清除');
+                  } catch (error) {
+                    console.error('清除缓存文件失败:', error);
+                    setStatus('清除缓存文件失败: ' + error.message);
+                  }
+                }}
+                title="清除所有缓存文件"
+                style={{ backgroundColor: '#dc3545' }}
+              >
+                <FaTimes />
+              </button>
             </div>
           </div>
           <div className="setting-group">
@@ -737,6 +754,23 @@ function App() {
                 title="在文件管理器中打开"
               >
                 <FaFolder />
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    console.log('正在清除目录:', screenshotPath);
+                    await window.electron.clearDirectory(screenshotPath);
+                    console.log('清除成功');
+                    setStatus('截图文件已清除');
+                  } catch (error) {
+                    console.error('清除截图文件失败:', error);
+                    setStatus('清除截图文件失败: ' + error.message);
+                  }
+                }}
+                title="清除所有截图文件"
+                style={{ backgroundColor: '#dc3545' }}
+              >
+                <FaTimes />
               </button>
             </div>
           </div>

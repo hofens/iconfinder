@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell, desktopCapturer, screen } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, desktopCapturer, screen, shell } = require('electron');
 const fs = require('fs');
 const fsPromises = require('fs').promises;
 const path = require('path');
@@ -981,6 +981,23 @@ ipcMain.handle('show-item-in-folder', async (event, itemPath) => {
     return true;
   } catch (error) {
     console.error('Error showing item in folder:', error);
+    throw error;
+  }
+});
+
+// 添加清除指定目录下所有文件的处理程序
+ipcMain.handle('clear-directory', async (event, dirPath) => {
+  try {
+    if (fs.existsSync(dirPath)) {
+      const files = await fsPromises.readdir(dirPath);
+      for (const file of files) {
+        const filePath = path.join(dirPath, file);
+        await fsPromises.unlink(filePath);
+      }
+    }
+    return true;
+  } catch (error) {
+    console.error('Error clearing directory:', error);
     throw error;
   }
 });

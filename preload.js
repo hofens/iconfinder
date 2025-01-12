@@ -37,6 +37,14 @@ const mainApi = {
       throw error;
     }
   },
+  clearDirectory: async (dirPath) => {
+    try {
+      return await ipcRenderer.invoke('clear-directory', dirPath);
+    } catch (error) {
+      console.error('Error clearing directory:', error);
+      throw error;
+    }
+  },
   initializeImageCache: async (directoryPath) => {
     try {
       return new Promise((resolve, reject) => {
