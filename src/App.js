@@ -1203,8 +1203,7 @@ function App() {
                       >
                         <div className="upload-placeholder">
                           <FaUpload size={40} />
-                          <p>{searchPath.trim() ? getText('upload.dragDrop') : getText('upload.selectDirectory')}</p>
-                          <p>{getText('upload.or')}</p>
+                          <p>{searchPath.trim() ? getText('upload.dragDrop') : ''}</p>
                           <div className="upload-buttons">
                             <input
                               type="file"
@@ -1222,12 +1221,12 @@ function App() {
                               {getText('upload.chooseFile')}
                             </label>
                             <button
-                              className={`screen-capture-button ${!searchPath.trim() ? 'disabled' : ''}`}
+                              className={`file-input-label ${!searchPath.trim() ? 'disabled' : ''}`}
                               onClick={startScreenCapture}
                               disabled={!searchPath.trim() || isScreenCapturing}
                               title="截取屏幕区域"
                             >
-                              <FaCrop /> 截取屏幕
+                              截取屏幕
                             </button>
                           </div>
                         </div>
