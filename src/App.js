@@ -705,17 +705,19 @@ function App() {
   };
 
   useEffect(() => {
-    if (previewUrl) {
+    if (selectedFile) {
       const img = new Image();
       img.onload = function() {
         const dimensions = document.getElementById('dimensions');
         if (dimensions) {
-          dimensions.textContent = `${this.width} × ${this.height}`;
+          dimensions.textContent = `${this.naturalWidth} × ${this.naturalHeight}`;
         }
       };
-      img.src = previewUrl;
+      if (previewUrl) {
+        img.src = previewUrl;
+      }
     }
-  }, [previewUrl]);
+  }, [selectedFile, previewUrl]);
 
   const handleSearch = () => {
     if (searchFile) {
