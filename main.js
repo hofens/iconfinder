@@ -1,8 +1,9 @@
-const { app, BrowserWindow, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, desktopCapturer, screen } = require('electron');
 const fs = require('fs');
 const fsPromises = require('fs').promises;
 const path = require('path');
 const sharp = require('sharp');
+const os = require('os');
 
 sharp.cache(false); // 禁用缓存以避免潜在的内存问题
 sharp.simd(true);   // 启用 SIMD 优化
@@ -803,4 +804,154 @@ ipcMain.handle('open-external', async (event, url) => {
     console.error('Error opening external URL:', error);
     throw error;
   }
+});
+
+// 添加透明窗口变量
+let captureWindow = null;
+
+// 修改截屏相关的函数和处理器
+async function createCaptureWindow() {
+  // 创建一个覆盖整个屏幕的透明窗口
+  const primaryDisplay = screen.getPrimaryDisplay();
+  captureWindow = new BrowserWindow({
+    x: primaryDisplay.bounds.x,
+    y: primaryDisplay.bounds.y,
+    width: primaryDisplay.bounds.width,
+    height: primaryDisplay.bounds.height,
+    transparent: true,
+    frame: false,
+    fullscreen: true,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      enableRemoteModule: false,
+      nodeIntegration: false,
+    },
+    skipTaskbar: true,
+  });
+
+  // 加载一个简单的HTML页面用于显示选择框
+  await captureWindow.loadFile(path.join(__dirname, 'capture.html'));
+  return captureWindow;
+}
+
+// 修改 capture-screen 处理器
+ipcMain.handle('start-capture-screen', async (event) => {
+  try {
+    // 最小化主窗口
+    const mainWindow = BrowserWindow.getAllWindows().find(win => !win.isDestroyed() && win !== captureWindow);
+    if (mainWindow) {
+      mainWindow.minimize();
+    }
+    
+    // 创建截图窗口
+    const win = await createCaptureWindow();
+    return true;
+  } catch (error) {
+    console.error('Error starting screen capture:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('capture-screen', async (event, bounds) => {
+  try {
+    // 先获取屏幕截图
+    const sources = await desktopCapturer.getSources({
+      types: ['screen'],
+      thumbnailSize: {
+        width: screen.getPrimaryDisplay().size.width,
+        height: screen.getPrimaryDisplay().size.height
+      }
+    });
+
+    if (sources.length === 0) {
+      throw new Error('No screen sources found');
+    }
+
+    const primarySource = sources[0];
+    const tempDir = path.join(app.getPath('temp'), 'iconfinder-screenshots');
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true });
+    }
+
+    const timestamp = Date.now();
+    const screenshotPath = path.join(tempDir, `screenshot-${timestamp}.png`);
+
+    // 保存截图
+    await sharp(primarySource.thumbnail.toPNG())
+      .extract({
+        left: Math.round(bounds.x),
+        top: Math.round(bounds.y),
+        width: Math.round(bounds.width),
+        height: Math.round(bounds.height)
+      })
+      .toFile(screenshotPath);
+
+    // 获取主窗口
+    const mainWindow = BrowserWindow.getAllWindows().find(win => !win.isDestroyed() && win !== captureWindow);
+
+    // 关闭截图窗口
+    if (captureWindow && !captureWindow.isDestroyed()) {
+      captureWindow.close();
+      captureWindow = null;
+    }
+
+    // 恢复主窗口并发送事件
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.restore();
+      mainWindow.focus();
+      mainWindow.webContents.send('screen-captured', screenshotPath);
+    }
+
+    return screenshotPath;
+  } catch (error) {
+    console.error('Error in capture-screen handler:', error);
+    
+    // 错误处理时也要确保窗口正确处理
+    if (captureWindow && !captureWindow.isDestroyed()) {
+      captureWindow.close();
+      captureWindow = null;
+    }
+
+    const mainWindow = BrowserWindow.getAllWindows().find(win => !win.isDestroyed() && win !== captureWindow);
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.restore();
+      mainWindow.focus();
+    }
+
+    throw error;
+  }
+});
+
+// 修改取消截图的处理器
+ipcMain.handle('cancel-capture-screen', async (event) => {
+  try {
+    // 关闭截图窗口
+    if (captureWindow && !captureWindow.isDestroyed()) {
+      captureWindow.close();
+      captureWindow = null;
+    }
+
+    // 恢复主窗口
+    const mainWindow = BrowserWindow.getAllWindows().find(win => !win.isDestroyed() && win !== captureWindow);
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.restore();
+      mainWindow.focus();
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error in cancel-capture-screen handler:', error);
+    throw error;
+  }
+});
+
+// 添加获取屏幕信息的 IPC 处理器
+ipcMain.handle('get-screen-info', () => {
+  const primaryDisplay = screen.getPrimaryDisplay();
+  return {
+    width: primaryDisplay.size.width,
+    height: primaryDisplay.size.height,
+    scaleFactor: primaryDisplay.scaleFactor
+  };
 });

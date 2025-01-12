@@ -1,11 +1,9 @@
 const { contextBridge, ipcRenderer } = require('electron');
-contextBridge.exposeInMainWorld('electron', {
-  getFileSize: (filePath) => {
-    return ipcRenderer.invoke('get-file-size', filePath);
-  },
-  getImageDimensions: (filePath) => {
-    return ipcRenderer.invoke('get-image-dimensions', filePath);
-  },
+
+// 为主窗口暴露的API
+const mainApi = {
+  getFileSize: (filePath) => ipcRenderer.invoke('get-file-size', filePath),
+  getImageDimensions: (filePath) => ipcRenderer.invoke('get-image-dimensions', filePath),
   calculateImageSimilarity: async (sourcePath, targetPath, weights) => {
     try {
       return await ipcRenderer.invoke('calculate-similarity', sourcePath, targetPath, weights);
@@ -76,10 +74,30 @@ contextBridge.exposeInMainWorld('electron', {
       throw error;
     }
   },
-  openExternal: (url) => {
-    return ipcRenderer.invoke('open-external', url);
-  }
-});
+  openExternal: (url) => ipcRenderer.invoke('open-external', url),
+  captureScreen: () => ipcRenderer.invoke('start-capture-screen'),
+  onScreenCapture: (callback) => ipcRenderer.on('screen-captured', callback),
+  removeScreenCapture: (callback) => ipcRenderer.removeListener('screen-captured', callback)
+};
+
+// 为截图窗口暴露的API
+const captureApi = {
+  invoke: (channel, ...args) => {
+    if (channel === 'capture-screen') {
+      return ipcRenderer.invoke('capture-screen', ...args);
+    }
+    return Promise.reject(new Error('Invalid channel'));
+  },
+  cancelCaptureScreen: () => ipcRenderer.invoke('cancel-capture-screen')
+};
+
+// 根据加载的HTML文件选择要暴露的API
+if (window.location.href.includes('capture.html')) {
+  contextBridge.exposeInMainWorld('electron', captureApi);
+} else {
+  contextBridge.exposeInMainWorld('electron', mainApi);
+}
+
 window.addEventListener('DOMContentLoaded', () => {
   const replaceText = (selector, text) => {
     const element = document.getElementById(selector);

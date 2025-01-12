@@ -1,7 +1,15 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useRef} from 'react';
 import './App.css';
-import {FaCog, FaFolder, FaImage, FaUpload, FaSearch, FaHome, FaQuestionCircle, FaIcons, FaGithub} from 'react-icons/fa';
+import {FaCog, FaFolder, FaImage, FaUpload, FaSearch, FaHome, FaQuestionCircle, FaIcons, FaGithub, FaCrop} from 'react-icons/fa';
 import {locales} from './locales';
+
+// 由于 path 是 Node.js 模块，我们需要通过 window.electron 来访问
+const path = {
+  basename: (filepath) => {
+    // 简单实现 basename 函数
+    return filepath.split(/[\\/]/).pop();
+  }
+};
 
 function App() {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -29,6 +37,9 @@ function App() {
   const [iconSearchResults, setIconSearchResults] = useState([]);
   const [iconSearchDirectory, setIconSearchDirectory] = useState('');
   const [iconFiles, setIconFiles] = useState([]);
+  const [isScreenCapturing, setIsScreenCapturing] = useState(false);
+  const selectionRef = useRef(null);
+  const startPosRef = useRef(null);
 
   // Ensure ipcRenderer is available
 
@@ -1058,6 +1069,65 @@ function App() {
     );
   };
 
+  // 添加截图完成的监听器
+  useEffect(() => {
+    const handleScreenCapture = async (event, screenshotPath) => {
+      try {
+        // 设置预览
+        const file = {
+          path: screenshotPath,
+          name: path.basename(screenshotPath),
+          size: (await window.electron.getFileSize(screenshotPath)).replace(' KB', '') * 1024
+        };
+        
+        setSelectedFile(file);
+        setSearchFile(file);
+        const previewData = await window.electron.getImagePreview(screenshotPath);
+        setPreviewUrl(previewData);
+        
+        // 自动开始搜索
+        searchSimilarImages(file);
+        
+        setIsScreenCapturing(false);
+      } catch (error) {
+        console.error('处理截图失败:', error);
+        setStatus('处理截图失败: ' + error.message);
+        setIsScreenCapturing(false);
+      }
+    };
+
+    if (window.electron) {
+      window.electron.onScreenCapture(handleScreenCapture);
+    }
+
+    return () => {
+      if (window.electron) {
+        window.electron.removeScreenCapture(handleScreenCapture);
+      }
+    };
+  }, []);
+
+  // 修改截屏相关函数
+  const startScreenCapture = async () => {
+    if (!searchPath.trim()) {
+      setStatus('请先选择搜索目录');
+      return;
+    }
+    
+    try {
+      setIsScreenCapturing(true);
+      if (window.electron && window.electron.captureScreen) {
+        await window.electron.captureScreen();
+      } else {
+        throw new Error('截屏功能不可用');
+      }
+    } catch (error) {
+      console.error('启动截屏失败:', error);
+      setStatus('启动截屏失败: ' + error.message);
+      setIsScreenCapturing(false);
+    }
+  };
+
   return (
     <div className="App">
       {renderSidebar()}
@@ -1135,21 +1205,31 @@ function App() {
                           <FaUpload size={40} />
                           <p>{searchPath.trim() ? getText('upload.dragDrop') : getText('upload.selectDirectory')}</p>
                           <p>{getText('upload.or')}</p>
-                          <input
-                            type="file"
-                            accept="image/*,.jpg,.jpeg,.png,.gif,.bmp,.webp,.svg"
-                            onChange={handleFileSelect}
-                            id="file-input"
-                            style={{display: 'none'}}
-                            disabled={!searchPath.trim()}
-                          />
-                          <label 
-                            htmlFor="file-input" 
-                            className={`file-input-label ${!searchPath.trim() ? 'disabled' : ''}`}
-                            title={getText('upload.chooseFile')}
-                          >
-                            {getText('upload.chooseFile')}
-                          </label>
+                          <div className="upload-buttons">
+                            <input
+                              type="file"
+                              accept="image/*,.jpg,.jpeg,.png,.gif,.bmp,.webp,.svg"
+                              onChange={handleFileSelect}
+                              id="file-input"
+                              style={{display: 'none'}}
+                              disabled={!searchPath.trim()}
+                            />
+                            <label 
+                              htmlFor="file-input" 
+                              className={`file-input-label ${!searchPath.trim() ? 'disabled' : ''}`}
+                              title={getText('upload.chooseFile')}
+                            >
+                              {getText('upload.chooseFile')}
+                            </label>
+                            <button
+                              className={`screen-capture-button ${!searchPath.trim() ? 'disabled' : ''}`}
+                              onClick={startScreenCapture}
+                              disabled={!searchPath.trim() || isScreenCapturing}
+                              title="截取屏幕区域"
+                            >
+                              <FaCrop /> 截取屏幕
+                            </button>
+                          </div>
                         </div>
                       </div>
                       <div className="preview-area">
