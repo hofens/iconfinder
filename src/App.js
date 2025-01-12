@@ -3,7 +3,8 @@ import './App.css';
 import {FaCog, FaFolder, FaImage, FaUpload, FaSearch, FaHome, FaQuestionCircle, FaIcons, FaGithub, FaCrop, FaTrash} from 'react-icons/fa';
 import {locales} from './locales';
 import Select from 'react-select';
-
+import { GoRelFilePath } from "react-icons/go";
+import { LuSearchCheck } from "react-icons/lu";
 // 由于 path 是 Node.js 模块，我们需要通过 window.electron 来访问
 const path = {
   basename: (filepath) => {
@@ -637,11 +638,6 @@ function App() {
   const renderSettingsPanel = () => {
     return (
       <div className="section settings-section">
-        <div className="section-header">
-          <div className="header-left">
-            <FaCog /> {getText('settings.title')}
-          </div>
-        </div>
         <div className="settings-container">
           {/* 语言设置 */}
           <div className="settings-group">
@@ -1158,14 +1154,14 @@ function App() {
             className={`sidebar-item ${activeSection === 'search' ? 'active' : ''}`}
             onClick={() => setActiveSection('search')}
           >
-            <FaSearch size={20} />
+            <LuSearchCheck size={20} />
             <span className="tooltip">搜索</span>
           </div>
           <div 
             className={`sidebar-item ${activeSection === 'icons' ? 'active' : ''}`}
             onClick={() => setActiveSection('icons')}
           >
-            <FaIcons size={20} />
+            <GoRelFilePath size={20} />
             <span className="tooltip">图标搜索</span>
           </div>
         </div>
@@ -1201,7 +1197,7 @@ function App() {
       <div className="section icon-search-section">
         <div className="section-header">
           <div className="header-left">
-            <FaIcons /> 图标搜索
+             图标搜索
           </div>
         </div>
         <div className="icon-search-container">
@@ -1269,7 +1265,7 @@ function App() {
               </div>
             ) : (
               <div className="no-icons">
-                <FaIcons size={40} />
+                <FaFolder size={40} />
                 <p>{!iconSearchDirectory ? '请先选择搜索目录' : 
                     iconSearchQuery ? '未找到匹配的图标' : '输入关键词开始搜索'}</p>
               </div>
@@ -1381,7 +1377,7 @@ function App() {
                   <div className="section directory-section">
                     <div className="section-header">
                       <div className="header-left">
-                        <FaFolder /> {getText('directory.title')}
+                        {getText('directory.title')}
                       </div>
                     </div>
                     <div className="directory-input">
@@ -1499,7 +1495,7 @@ function App() {
                   <div className="section results-section">
                     <div className="section-header">
                       <div className="header-left">
-                        <FaImage /> {getText('results.title')}
+                        {getText('results.title')}
                       </div>
                       <div className="header-controls">
                         <div className="control-item">

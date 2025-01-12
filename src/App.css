@@ -1310,10 +1310,10 @@ mark {
 }
 
 .settings-container {
-  padding: 20px;
+  padding: 0px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
 }
 
 .settings-group {
@@ -1341,7 +1341,6 @@ mark {
 }
 
 .setting-item label {
-  display: block;
   margin-bottom: 8px;
   color: #4a5568;
   font-weight: 500;
