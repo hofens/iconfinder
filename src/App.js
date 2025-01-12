@@ -46,6 +46,7 @@ function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [colorEnabled, setColorEnabled] = useState(true);
   const [shapeEnabled, setShapeEnabled] = useState(false);
+  const [imageDimensions, setImageDimensions] = useState(null);
 
   // Ensure ipcRenderer is available
 
@@ -705,17 +706,14 @@ function App() {
   };
 
   useEffect(() => {
-    if (selectedFile) {
+    if (selectedFile && previewUrl) {
       const img = new Image();
       img.onload = function() {
-        const dimensions = document.getElementById('dimensions');
-        if (dimensions) {
-          dimensions.textContent = `${this.naturalWidth} × ${this.naturalHeight}`;
-        }
+        setImageDimensions(`${this.naturalWidth} × ${this.naturalHeight}`);
       };
-      if (previewUrl) {
-        img.src = previewUrl;
-      }
+      img.src = previewUrl;
+    } else {
+      setImageDimensions(null);
     }
   }, [selectedFile, previewUrl]);
 
@@ -1372,7 +1370,7 @@ function App() {
                               <p><span>{getText('preview.path')}:</span> {selectedFile?.path || selectedFile?.name}</p>
                               <p><span>{getText('preview.size')}:</span> {(selectedFile?.size / 1024).toFixed(2)} KB</p>
                               {selectedFile && (
-                                <p><span>{getText('preview.dimensions')}:</span> <span id="dimensions">Loading...</span></p>
+                                <p><span>{getText('preview.dimensions')}:</span> {imageDimensions || 'Loading...'}</p>
                               )}
                             </div>
                           </div>
