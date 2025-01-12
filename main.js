@@ -732,7 +732,6 @@ function calculateSimilarityFromFeatures(sourceFeatures, targetFeatures, weights
     sourceFeatures.histogram.every((value, index) => value === targetFeatures.histogram[index]);
 
   if (isSameImage) {
-    // 返回完整的相似度信息对象，而不是简单的数字 1
     return {
       totalSimilarity: 1,
       colorSimilarity: 1,
@@ -740,39 +739,56 @@ function calculateSimilarityFromFeatures(sourceFeatures, targetFeatures, weights
     };
   }
 
-  const { colorWeight = 0.7, shapeWeight = 0.3 } = weights;
+  const { colorEnabled = true, shapeEnabled = false } = weights;
+  let { colorWeight = 0.7, shapeWeight = 0.3 } = weights;
 
-  const histogramSimilarity = calculateHistogramSimilarity(
+  // 根据启用状态调整权重
+  if (colorEnabled && !shapeEnabled) {
+    colorWeight = 1;
+    shapeWeight = 0;
+  } else if (!colorEnabled && shapeEnabled) {
+    colorWeight = 0;
+    shapeWeight = 1;
+  }
+
+  // 只在启用时计算相应的相似度
+  const colorSimilarity = colorEnabled ? calculateHistogramSimilarity(
     sourceFeatures.histogram,
     targetFeatures.histogram
-  );
+  ) : 0;
 
-  const shapeSimilarity = calculateShapeSimilarity(
+  const shapeSimilarity = shapeEnabled ? calculateShapeSimilarity(
     sourceFeatures.aspectRatio,
     targetFeatures.aspectRatio,
     sourceFeatures.dimensions,
     targetFeatures.dimensions,
     sourceFeatures.cornerFeatures,
     targetFeatures.cornerFeatures
-  );
+  ) : 0;
 
-  // 使用非线性函数调整相似度权重
+  // 计算总相似度
   let totalSimilarity;
-  if (colorWeight >= 0.7) {
-    // 颜色优先模式：增强颜色相似度的影响
-    const enhancedHistogramSimilarity = Math.pow(histogramSimilarity, 0.7);
-    // 减小尺寸差异的惩罚
-    const adjustedShapeSimilarity = Math.pow(shapeSimilarity, 1.5);
-    totalSimilarity = (colorWeight * enhancedHistogramSimilarity + shapeWeight * adjustedShapeSimilarity);
-  } else if (shapeWeight >= 0.7) {
-    // 形状优先模式
-    const enhancedShapeSimilarity = Math.pow(shapeSimilarity, 0.7);
-    totalSimilarity = (colorWeight * histogramSimilarity + shapeWeight * enhancedShapeSimilarity);
+  if (colorEnabled && !shapeEnabled) {
+    totalSimilarity = colorSimilarity;
+  } else if (!colorEnabled && shapeEnabled) {
+    totalSimilarity = shapeSimilarity;
+  } else if (colorEnabled && shapeEnabled) {
+    // 两者都启用时使用权重
+    if (colorWeight >= 0.7) {
+      const enhancedHistogramSimilarity = Math.pow(colorSimilarity, 0.7);
+      const adjustedShapeSimilarity = Math.pow(shapeSimilarity, 1.5);
+      totalSimilarity = (colorWeight * enhancedHistogramSimilarity + shapeWeight * adjustedShapeSimilarity);
+    } else if (shapeWeight >= 0.7) {
+      const enhancedShapeSimilarity = Math.pow(shapeSimilarity, 0.7);
+      totalSimilarity = (colorWeight * colorSimilarity + shapeWeight * enhancedShapeSimilarity);
+    } else {
+      const balancedHistogram = Math.pow(colorSimilarity, 0.8);
+      const balancedShape = Math.pow(shapeSimilarity, 0.8);
+      totalSimilarity = (colorWeight * balancedHistogram + shapeWeight * balancedShape);
+    }
   } else {
-    // 平衡模式：使用更平滑的加权
-    const balancedHistogram = Math.pow(histogramSimilarity, 0.8);
-    const balancedShape = Math.pow(shapeSimilarity, 0.8);
-    totalSimilarity = (colorWeight * balancedHistogram + shapeWeight * balancedShape);
+    // 都未启用时返回0
+    totalSimilarity = 0;
   }
 
   // 应用最终的相似度调整
@@ -780,9 +796,11 @@ function calculateSimilarityFromFeatures(sourceFeatures, targetFeatures, weights
 
   console.log(`Similarity calculation:
     Mode: ${colorWeight >= 0.7 ? 'Color Priority' : shapeWeight >= 0.7 ? 'Shape Priority' : 'Balanced'}
+    Color Enabled: ${colorEnabled}
+    Shape Enabled: ${shapeEnabled}
     Color Weight: ${colorWeight.toFixed(2)}
     Shape Weight: ${shapeWeight.toFixed(2)}
-    Color Similarity: ${histogramSimilarity.toFixed(4)}
+    Color Similarity: ${colorSimilarity.toFixed(4)}
     Shape Similarity: ${shapeSimilarity.toFixed(4)}
     Total Similarity: ${totalSimilarity.toFixed(4)}
     Is Same Image: ${isSameImage}
@@ -790,7 +808,7 @@ function calculateSimilarityFromFeatures(sourceFeatures, targetFeatures, weights
 
   return {
     totalSimilarity,
-    colorSimilarity: histogramSimilarity,
+    colorSimilarity,
     shapeSimilarity
   };
 }

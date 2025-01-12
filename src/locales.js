@@ -1,8 +1,12 @@
 export const locales = {
   zh: {
     settings: {
-      title: '搜索设置',
-      language: '语言 (Language)',
+      title: '设置',
+      general: '常规设置',
+      language: '语言',
+      similarity_features: '相似度特征',
+      color_feature: '颜色特征',
+      shape_feature: '形状特征',
       includePaths: '包含路径 (正则表达式)',
       excludePaths: '排除路径 (正则表达式)',
       showDetailedInfo: '显示详细相似度信息',
@@ -57,8 +61,12 @@ export const locales = {
   },
   en: {
     settings: {
-      title: 'Search Settings',
+      title: 'Settings',
+      general: 'General Settings',
       language: 'Language',
+      similarity_features: 'Similarity Features',
+      color_feature: 'Color Feature',
+      shape_feature: 'Shape Feature',
       includePaths: 'Include Paths (Regex)',
       excludePaths: 'Exclude Paths (Regex)',
       showDetailedInfo: 'Show Detailed Similarity Info',

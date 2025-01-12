@@ -1,6 +1,6 @@
 import React, {useEffect, useState, useRef} from 'react';
 import './App.css';
-import {FaCog, FaFolder, FaImage, FaUpload, FaSearch, FaHome, FaQuestionCircle, FaIcons, FaGithub, FaCrop} from 'react-icons/fa';
+import {FaCog, FaFolder, FaImage, FaUpload, FaSearch, FaHome, FaQuestionCircle, FaIcons, FaGithub, FaCrop, FaTimes} from 'react-icons/fa';
 import {locales} from './locales';
 import Select from 'react-select';
 
@@ -43,6 +43,9 @@ function App() {
   const startPosRef = useRef(null);
   const [expandedDirs, setExpandedDirs] = useState(new Set());
   const [isDirectorySelectOpen, setIsDirectorySelectOpen] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [colorEnabled, setColorEnabled] = useState(true);
+  const [shapeEnabled, setShapeEnabled] = useState(false);
 
   // Ensure ipcRenderer is available
 
@@ -158,15 +161,14 @@ function App() {
               filePath,
               fileEntry.path,
               { 
+                colorEnabled,
+                shapeEnabled,
                 colorWeight: 0.7,
                 shapeWeight: 0.3,
               }
             );
             
-            similarityResult = (
-              result.colorSimilarity * 0.7 + 
-              result.shapeSimilarity * 0.3
-            );
+            similarityResult = result.totalSimilarity;
 
             // 如果预览图片不存在，从缓存中获取
             if (!preview) {
@@ -633,7 +635,7 @@ function App() {
       <div className="section settings-section">
         <div className="section-header">
           <div className="header-left">
-            <FaCog /> 设置
+            <FaCog /> {getText('settings.title')}
           </div>
         </div>
         <div className="settings-container">
@@ -647,6 +649,27 @@ function App() {
               <option value="zh">中文</option>
               <option value="en">English</option>
             </select>
+          </div>
+          <div className="setting-group">
+            <label>{getText('settings.similarity_features')}</label>
+            <div style={{ display: 'flex', alignItems: 'center', marginTop: '8px' }}>
+              <label className="checkbox-label" style={{ marginRight: '24px' }}>
+                <input
+                  type="checkbox"
+                  checked={colorEnabled}
+                  onChange={(e) => setColorEnabled(e.target.checked)}
+                />
+                {getText('settings.color_feature')}
+              </label>
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={shapeEnabled}
+                  onChange={(e) => setShapeEnabled(e.target.checked)}
+                />
+                {getText('settings.shape_feature')}
+              </label>
+            </div>
           </div>
           <div className="setting-group">
             <label>{getText('settings.includePaths')}</label>
