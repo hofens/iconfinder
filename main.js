@@ -874,13 +874,14 @@ ipcMain.handle('capture-screen', async (event, bounds) => {
     }
 
     const primarySource = sources[0];
-    const tempDir = path.join(app.getPath('temp'), 'iconfinder-screenshots');
-    if (!fs.existsSync(tempDir)) {
-      fs.mkdirSync(tempDir, { recursive: true });
+    const userDataPath = app.getPath('userData');
+    const screenshotDir = path.join(userDataPath, 'screenshots');
+    if (!fs.existsSync(screenshotDir)) {
+      fs.mkdirSync(screenshotDir, { recursive: true });
     }
 
     const timestamp = Date.now();
-    const screenshotPath = path.join(tempDir, `screenshot-${timestamp}.png`);
+    const screenshotPath = path.join(screenshotDir, `screenshot-${timestamp}.png`);
 
     // 保存截图
     await sharp(primarySource.thumbnail.toPNG())
@@ -969,7 +970,8 @@ ipcMain.handle('get-cache-path', async () => {
 
 // 添加获取截图路径的处理程序
 ipcMain.handle('get-screenshot-path', async () => {
-  return path.join(app.getPath('temp'), 'iconfinder-screenshots');
+  const userDataPath = app.getPath('userData');
+  return path.join(userDataPath, 'screenshots');
 });
 
 // 添加在文件管理器中显示文件/文件夹的处理程序
