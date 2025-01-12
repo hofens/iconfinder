@@ -960,3 +960,25 @@ ipcMain.handle('get-screen-info', () => {
     scaleFactor: primaryDisplay.scaleFactor
   };
 });
+
+// 修改获取缓存路径的处理程序
+ipcMain.handle('get-cache-path', async () => {
+  const userDataPath = app.getPath('userData');
+  return path.join(userDataPath, 'image-cache');
+});
+
+// 添加获取截图路径的处理程序
+ipcMain.handle('get-screenshot-path', async () => {
+  return path.join(app.getPath('temp'), 'iconfinder-screenshots');
+});
+
+// 添加在文件管理器中显示文件/文件夹的处理程序
+ipcMain.handle('show-item-in-folder', async (event, itemPath) => {
+  try {
+    await shell.showItemInFolder(itemPath);
+    return true;
+  } catch (error) {
+    console.error('Error showing item in folder:', error);
+    throw error;
+  }
+});

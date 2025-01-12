@@ -77,7 +77,10 @@ const mainApi = {
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
   captureScreen: () => ipcRenderer.invoke('start-capture-screen'),
   onScreenCapture: (callback) => ipcRenderer.on('screen-captured', callback),
-  removeScreenCapture: (callback) => ipcRenderer.removeListener('screen-captured', callback)
+  removeScreenCapture: (callback) => ipcRenderer.removeListener('screen-captured', callback),
+  getCachePath: () => ipcRenderer.invoke('get-cache-path'),
+  getScreenshotPath: () => ipcRenderer.invoke('get-screenshot-path'),
+  showItemInFolder: (path) => ipcRenderer.invoke('show-item-in-folder', path)
 };
 
 // 为截图窗口暴露的API

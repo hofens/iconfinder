@@ -47,6 +47,8 @@ function App() {
   const [colorEnabled, setColorEnabled] = useState(true);
   const [shapeEnabled, setShapeEnabled] = useState(false);
   const [imageDimensions, setImageDimensions] = useState(null);
+  const [cachePath, setCachePath] = useState('');
+  const [screenshotPath, setScreenshotPath] = useState('');
 
   // Ensure ipcRenderer is available
 
@@ -700,6 +702,44 @@ function App() {
               {getText('settings.showDetailedInfo')}
             </label>
           </div>
+          <div className="setting-group">
+            <label>缓存文件存储路径</label>
+            <div className="path-display">
+              <input
+                type="text"
+                value={cachePath}
+                readOnly
+                onClick={() => handleOpenDirectory(cachePath)}
+                style={{ cursor: 'pointer' }}
+                title="点击在文件管理器中打开"
+              />
+              <button 
+                onClick={() => handleOpenDirectory(cachePath)}
+                title="在文件管理器中打开"
+              >
+                <FaFolder />
+              </button>
+            </div>
+          </div>
+          <div className="setting-group">
+            <label>截图文件存储路径</label>
+            <div className="path-display">
+              <input
+                type="text"
+                value={screenshotPath}
+                readOnly
+                onClick={() => handleOpenDirectory(screenshotPath)}
+                style={{ cursor: 'pointer' }}
+                title="点击在文件管理器中打开"
+              />
+              <button 
+                onClick={() => handleOpenDirectory(screenshotPath)}
+                title="在文件管理器中打开"
+              >
+                <FaFolder />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -1251,6 +1291,25 @@ function App() {
       console.error('启动截屏失败:', error);
       setStatus('启动截屏失败: ' + error.message);
       setIsScreenCapturing(false);
+    }
+  };
+
+  // 添加获取路径的 useEffect
+  useEffect(() => {
+    if (window.electron) {
+      window.electron.getCachePath().then(path => setCachePath(path));
+      window.electron.getScreenshotPath().then(path => setScreenshotPath(path));
+    }
+  }, []);
+
+  const handleOpenDirectory = async (path) => {
+    if (window.electron) {
+      try {
+        await window.electron.showItemInFolder(path);
+      } catch (error) {
+        console.error('打开目录失败:', error);
+        setStatus('打开目录失败: ' + error.message);
+      }
     }
   };
 
